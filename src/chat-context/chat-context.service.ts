@@ -134,31 +134,32 @@ export class ChatContextService implements OnApplicationBootstrap {
     );
     this.categories = data;
     for (const category of this.categories) {
+      let vectorStore = null;
       if (
         fs.existsSync(
-          `${this.chatStorageBasePath}uploads/ChatGuru/${category.name}`,
+          `${this.chatStorageBasePath}uploads/ChatGuru/${category.name}/faiss-saved-stores`,
         )
       ) {
         const contextSources = fs.readdirSync(
           `${this.chatStorageBasePath}uploads/ChatGuru/${category.name}/faiss-saved-stores`,
         );
         if (contextSources.length) {
-          let vectorStore;
           try {
             vectorStore = await this.createVectorStorage(
               category.name,
               contextSources,
             );
           } catch {
-            return 'error reading cached sources';
+            console.log('error reading cached sources');
           }
-          for (const chat of category.chats) {
-            chat.model = this.modelCreator(chat.modelName);
-            chat.chain = this.chainCreator(
-              chat.model,
-              vectorStore.asRetriever(),
-            );
-          }
+        }
+      }
+      for (const chat of category.chats) {
+        console.log(chat.model);
+        chat.model = this.modelCreator(chat.modelName);
+        console.log(chat.model);
+        if (vectorStore) {
+          chat.chain = this.chainCreator(chat.model, vectorStore.asRetriever());
         }
       }
     }
@@ -176,6 +177,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     if (this.categories.find((cat) => cat.name === data.name)) {
       return 'category already exists';
     }
+    fs.mkdirSync(`${this.chatStorageBasePath}uploads/ChatGuru/${data.name}`);
     this.categories.push({
       name: data.name,
       description: data.description,

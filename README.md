@@ -1,3 +1,21 @@
+## Install guru chat api
+### Pull and Run model container
+#### If you use NVIDIA driver to run model:
+```
+docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+#### If you use CPU to run model:
+```
+docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+### Download llama model
+```
+docker exec -it ollama ollama run llama2:13b
+```
+### Run guru chat api
+```
+npm run start
+```
 
 ## API Reference
 
