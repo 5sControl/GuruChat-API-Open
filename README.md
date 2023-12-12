@@ -17,6 +17,12 @@ docker exec -it ollama ollama run llama2:13b
 npm run start
 ```
 
+## Also you can run our docker container
+```
+docker pull 5scontrol/chat-guru-api
+docker run -p 3002:3002 5scontrol/chat-guru-api
+```
+
 ## API Reference
 
 #### Get all knowledge base categories
