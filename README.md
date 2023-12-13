@@ -1,3 +1,15 @@
+# About Chat Guru
+
+The ultimate **AI-powered digital assistant** for your business. With its extensive expertise in your industry, business operations, customers, and company history, it's like having a second brain at your disposal. Communicating in plain and friendly language, ChatGuru **effortlessly tackles even the toughest questions** and offers invaluable recommendations. 
+
+By serving as a knowledge repository and intelligent interface, ChatGuru aims to be a **powerful partner** that accelerates your business and helps you to **stay ahead of the competition.**
+
+ChatGuru is an **on-premise solution**. With this model, you and only you **control your data and infrastructure**, ensuring that your info remains secure and private.
+
+**Remember: the value of GhatGurtu would increase substantially as its knowledge base grows.**
+
+# Getting started
+
 ## Install guru chat api
 ### Pull and Run model container
 #### If you use NVIDIA driver to run model:
@@ -156,7 +168,39 @@ modelName: string;\
 | `chatId`  | `ChatData` | **Required**. Selected chat id.|
 | `prompt`  | `ChatData` | **Required**. Your question to selected chat|
 
+# **Documentation**
 
+[Documentation for Developers](https://github.com/5sControl/5s-dev-documentation/wiki)
+
+[User Documentation](https://github.com/5sControl/Manufacturing-Automatization-Enterprise/wiki)
+
+
+# **Contributing**
+Thank you for considering contributing to 5controlS. We truly believe that we can build an outstanding product together!
+
+We welcome a variety of ways to contribute. Read below to learn how you can take part in improving 5controlS.
+
+## **Code of conduct**
+
+Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+
+## Code contributing
+
+If you want to contribute, read  our [contributing guide](CONTRIBUTING.md) to learn about our development process and pull requests workflow.
+
+We also have a list of [good first issues](https://github.com/5sControl/GuruChat-API_Open/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) that will help you make your first step to beсoming a 5S contributor.
+
+<br>
+<div align="center">
+  <a href="https://5controls.com/" style="text-decoration:none;">
+    <img src="https://github.com/5sControl/Manufacturing-Automatization-Enterprise/blob/3bafa5805821a34e8b825df7cc78e00543fd7a58/assets/Property%201%3DVariant4.png" width="10%" alt="" /></a> 
+  <img src="https://github.com/5sControl/5s-backend/assets/131950264/d48bcf5c-8aa6-42c4-a47d-5548ae23940d" width="3%" alt="" />
+  <a href="https://github.com/5sControl" style="text-decoration:none;">
+    <img src="https://github.com/5sControl/Manufacturing-Automatization-Enterprise/blob/3bafa5805821a34e8b825df7cc78e00543fd7a58/assets/github.png" width="4%" alt="" /></a>
+  <img src="https://github.com/5sControl/5s-backend/assets/131950264/d48bcf5c-8aa6-42c4-a47d-5548ae23940d" width="3%" alt="" />
+  <a href="https://www.youtube.com/@5scontrol" style="text-decoration:none;">
+    <img src="https://github.com/5sControl/Manufacturing-Automatization-Enterprise/blob/ebf176c81fdb62d81b2555cb6228adc074f60be0/assets/youtube%20(1).png" width="5%" alt="" /></a>
+</div>
 
 
 
