@@ -11,7 +11,7 @@ import { TextLoader } from 'langchain/document_loaders/fs/text';
 import * as fs from 'fs';
 import { CSVLoader } from 'langchain/document_loaders/fs/csv';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
-import { Category } from '../shared/interfaces';
+import { Category, Chat } from '../shared/interfaces';
 import { v4 } from 'uuid';
 import { RetrievalQAChain } from 'langchain/chains';
 import { RecursiveUrlLoader } from 'langchain/document_loaders/web/recursive_url';
@@ -32,10 +32,11 @@ export class ChatContextService implements OnApplicationBootstrap {
   ];
   llamaUrl;
   categories: Category[] = [];
+  chats: Chat[] = [];
   embeddingModel;
   textSplitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 700,
-    chunkOverlap: 50,
+    chunkSize: 500,
+    chunkOverlap: 0,
   });
 
   constructor(private readonly configService: ConfigService) {
@@ -80,6 +81,10 @@ export class ChatContextService implements OnApplicationBootstrap {
       `${this.chatStorageBasePath}backup/categories.txt`,
       JSON.stringify(this.categories),
     );
+    fs.writeFileSync(
+      `${this.chatStorageBasePath}backup/chats.txt`,
+      JSON.stringify(this.chats),
+    );
   }
 
   private validatePaths(categoryName: string) {
@@ -116,6 +121,12 @@ export class ChatContextService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    if (!fs.existsSync(`${this.chatStorageBasePath}uploads`)) {
+      fs.mkdirSync(`${this.chatStorageBasePath}uploads`);
+    }
+    if (!fs.existsSync(`${this.chatStorageBasePath}uploads/ChatGuru`)) {
+      fs.mkdirSync(`${this.chatStorageBasePath}uploads/ChatGuru`);
+    }
     const data = fs.readFileSync(
       `${this.chatStorageBasePath}backup/categories.txt`,
       {
@@ -127,12 +138,18 @@ export class ChatContextService implements OnApplicationBootstrap {
   }
 
   private async uploadCachedChats() {
-    const data = JSON.parse(
+    const categories = JSON.parse(
       fs.readFileSync(`${this.chatStorageBasePath}backup/categories.txt`, {
         encoding: 'utf8',
       }),
     );
-    this.categories = data;
+    const chats = JSON.parse(
+      fs.readFileSync(`${this.chatStorageBasePath}backup/chats.txt`, {
+        encoding: 'utf8',
+      }),
+    );
+    this.categories = categories;
+    this.chats = chats;
     for (const category of this.categories) {
       let vectorStore = null;
       if (
@@ -154,12 +171,20 @@ export class ChatContextService implements OnApplicationBootstrap {
           }
         }
       }
-      for (const chat of category.chats) {
-        console.log(chat.model);
-        chat.model = this.modelCreator(chat.modelName);
-        console.log(chat.model);
-        if (vectorStore) {
-          chat.chain = this.chainCreator(chat.model, vectorStore.asRetriever());
+      category.vectorStore = vectorStore;
+    }
+    for (const chat of this.chats) {
+      chat.model = this.modelCreator(chat.modelName);
+      if (chat.categoryName) {
+        const chatCategory = this.categories.find(
+          (category) => category.name === chat.categoryName,
+        );
+        if (chatCategory.vectorStore) {
+          chat.chain = this.chainCreator(
+            chat.model,
+            chatCategory.vectorStore.asRetriever(),
+          );
+          chat.vectorStore = chatCategory.vectorStore;
         }
       }
     }
@@ -167,6 +192,10 @@ export class ChatContextService implements OnApplicationBootstrap {
 
   getCategories() {
     return this.categories;
+  }
+
+  getChats() {
+    return this.chats;
   }
 
   getModels() {
@@ -181,7 +210,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     this.categories.push({
       name: data.name,
       description: data.description,
-      chats: [],
+      vectorStore: null,
       categoryContent: {
         links: [],
         files: [],
@@ -196,11 +225,18 @@ export class ChatContextService implements OnApplicationBootstrap {
     newName?: string;
     description?: string;
   }) {
+    if (this.categories.some((category) => category.name === data.newName)) {
+      return 'such category is already exists';
+    }
     const targetCategory = this.categories.find(
       (category) => category.name === data.oldName,
     );
     if (data.newName) {
       targetCategory.name = data.newName;
+      fs.renameSync(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${data.oldName}`,
+        `${this.chatStorageBasePath}uploads/ChatGuru/${data.newName}`,
+      );
     }
     if (data.description) {
       targetCategory.description = data.description;
@@ -213,6 +249,10 @@ export class ChatContextService implements OnApplicationBootstrap {
     this.categories = this.categories.filter(
       (category) => category.name !== data.name,
     );
+    fs.rmSync(`${this.chatStorageBasePath}uploads/ChatGuru/${data.name}`, {
+      recursive: true,
+      force: true,
+    });
     this.backupData();
     return this.categories;
   }
@@ -229,14 +269,42 @@ export class ChatContextService implements OnApplicationBootstrap {
       selectedCategory.categoryContent.files.filter(
         (source) => source.name !== fileName,
       );
-    selectedCategory.chats.forEach((chat) => {
-      chat.sources = chat.sources.filter((source) => source !== fileName);
+    this.chats.forEach((chat) => {
+      if (chat.categoryName === categoryName) {
+        chat.sources = chat.sources.filter((source) => source !== fileName);
+      }
     });
+    if (
+      fs.existsSync(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/files/${fileName}`,
+      )
+    ) {
+      fs.rmSync(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/files/${fileName}`,
+        {
+          recursive: true,
+          force: true,
+        },
+      );
+    }
+    if (
+      fs.existsSync(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/faiss-saved-stores/${fileName}`,
+      )
+    ) {
+      fs.rmSync(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/faiss-saved-stores/${fileName}`,
+        {
+          recursive: true,
+          force: true,
+        },
+      );
+    }
     this.backupData();
     return this.categories;
   }
 
-  async createChat(categoryName: string, modelName: string) {
+  async createChat(modelName: string, categoryName?: string) {
     const chatId = v4();
     let contextSources;
     const model = this.modelCreator(this.availableModels[0]);
@@ -260,9 +328,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         vectorStore,
         history: [],
       };
-      this.categories
-        .find((category) => category.name === categoryName)
-        .chats.push(newChatData);
+      this.chats.push(newChatData);
       this.backupData();
       return this.categories;
     } catch {
@@ -277,40 +343,42 @@ export class ChatContextService implements OnApplicationBootstrap {
         vectorStore: null,
         history: [],
       };
-      this.categories
-        .find((category) => category.name === categoryName)
-        .chats.push(newChatData);
+      this.chats.push(newChatData);
       this.backupData();
-      return this.categories;
+      return this.chats;
     }
   }
 
-  async removeChat(categoryName: string, chatId: string) {
-    const currentCategory = this.categories.find(
-      (cat) => cat.name === categoryName,
-    );
-    currentCategory.chats = currentCategory.chats.filter(
-      (chat) => chat.id !== chatId,
-    );
-    return this.categories;
+  async removeChat(chatId: string) {
+    this.chats = this.chats.filter((chat) => chat.id !== chatId);
+    return this.chats;
   }
 
   async editChat(params: {
-    categoryName: string;
+    categoryName?: string;
     chatId: string;
-    sources: string[];
-    chatName: string;
-    modelName: string;
+    sources?: string[];
+    chatName?: string;
+    modelName?: string;
   }) {
-    const model = this.modelCreator(params.modelName);
-    const currentCategory = this.categories.find(
-      (cat) => cat.name === params.categoryName,
-    );
-    const currentChat = currentCategory.chats.find(
-      (chat) => chat.id === params.chatId,
-    );
+    const currentChat = this.chats.find((chat) => chat.id === params.chatId);
+    const model = params.modelName
+      ? this.modelCreator(params.modelName)
+      : currentChat.model;
     if (params.chatName) {
       currentChat.name = params.chatName;
+    }
+    if (params.categoryName) {
+      currentChat.categoryName = params.categoryName;
+      currentChat.vectorStore = this.categories.find(
+        (cat) => cat.name === params.categoryName,
+      ).vectorStore;
+      if (currentChat.vectorStore) {
+        currentChat.chain = this.chainCreator(
+          currentChat.model,
+          currentChat.vectorStore.asRetriever(),
+        );
+      }
     }
     if (params.modelName) {
       currentChat.model = model;
@@ -324,7 +392,7 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.chain = this.chainCreator(model, vectorStore.asRetriever());
       currentChat.sources = params.sources;
     }
-    return this.categories;
+    return this.chats;
   }
 
   private async processIncomingData(
@@ -444,16 +512,25 @@ export class ChatContextService implements OnApplicationBootstrap {
     return new StreamableFile(file);
   }
 
-  async askAssistant(params: { prompt: string; chatId: string }) {
-    const currentCategory = this.categories.find((category) =>
-      category.chats.some((chat) => chat.id === params.chatId),
-    );
-    if (!currentCategory) {
-      return 'invalid category name';
+  async askAssistant(params: {
+    prompt: string;
+    chatId: string;
+    categoryName: string;
+  }) {
+    const currentChat = this.chats.find((chat) => chat.id === params.chatId);
+    if (!currentChat) {
+      return 'invalid chat id';
     }
-    const currentChat = currentCategory.chats.find(
-      (chat) => chat.id === params.chatId,
+    const selectedCategory = this.categories.find(
+      (category) => category.name === params.categoryName,
     );
+    if (selectedCategory) {
+      currentChat.vectorStore = selectedCategory.vectorStore;
+      currentChat.chain = this.chainCreator(
+        currentChat.model,
+        currentChat.vectorStore.asRetriever(),
+      );
+    }
     if (!currentChat.chain || !currentChat.sources.length) {
       const answer = await currentChat.model.call(params.prompt);
       currentChat.history.push({ author: 'user', message: params.prompt });
@@ -465,9 +542,6 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.history.push({ author: 'user', message: params.prompt });
       currentChat.history.push({ author: 'chat', message: answer.text });
     }
-    if (!currentChat) {
-      return 'invalid chat id';
-    }
-    return this.categories;
+    return this.chats;
   }
 }

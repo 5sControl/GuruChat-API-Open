@@ -23,6 +23,7 @@ export class ChatContextController {
     query: {
       chatId: string;
       prompt: string;
+      categoryName: string;
     },
   ) {
     try {
@@ -114,14 +115,26 @@ export class ChatContextController {
     }
   }
 
+  @Get('getChats')
+  getChats() {
+    try {
+      return this.chatContextService.getChats();
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
   @Post('createChat?')
   async createChat(
     @Query() query: { categoryName: string; modelName: string },
   ) {
     try {
       return await this.chatContextService.createChat(
-        query.categoryName,
         query.modelName,
+        query.categoryName,
       );
     } catch (err) {
       if (err.message) {
@@ -132,12 +145,9 @@ export class ChatContextController {
   }
 
   @Post('removeChat?')
-  async removeChat(@Query() query: { categoryName: string; chatId: string }) {
+  async removeChat(@Query() query: { chatId: string }) {
     try {
-      return await this.chatContextService.removeChat(
-        query.categoryName,
-        query.chatId,
-      );
+      return await this.chatContextService.removeChat(query.chatId);
     } catch (err) {
       if (err.message) {
         throw new HttpException(err.message, err.status);
@@ -150,11 +160,11 @@ export class ChatContextController {
   async editChat(
     @Body()
     body: {
-      categoryName: string;
+      categoryName?: string;
       chatId: string;
-      sources: string[];
-      chatName: string;
-      modelName: string;
+      sources?: string[];
+      chatName?: string;
+      modelName?: string;
     },
   ) {
     try {

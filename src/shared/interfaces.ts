@@ -1,4 +1,5 @@
 import { RetrievalQAChain } from 'langchain/chains';
+import { FaissStore } from 'langchain/vectorstores/faiss';
 
 interface SourceData {
   name: string;
@@ -8,7 +9,7 @@ interface SourceData {
 export interface Category {
   name: string;
   description: string;
-  chats: Chat[];
+  vectorStore: FaissStore;
   categoryContent: {
     links: SourceData[];
     files: Array<SourceData & { size: number }>;
