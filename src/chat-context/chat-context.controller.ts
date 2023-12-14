@@ -129,7 +129,7 @@ export class ChatContextController {
 
   @Post('createChat?')
   async createChat(
-    @Query() query: { categoryName: string; modelName: string },
+    @Query() query: { categoryName?: string; modelName: string },
   ) {
     try {
       return await this.chatContextService.createChat(

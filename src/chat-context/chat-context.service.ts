@@ -179,7 +179,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         const chatCategory = this.categories.find(
           (category) => category.name === chat.categoryName,
         );
-        if (chatCategory.vectorStore) {
+        if (chatCategory && chatCategory.vectorStore) {
           chat.chain = this.chainCreator(
             chat.model,
             chatCategory.vectorStore.asRetriever(),
@@ -369,10 +369,23 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.name = params.chatName;
     }
     if (params.categoryName) {
-      currentChat.categoryName = params.categoryName;
-      currentChat.vectorStore = this.categories.find(
-        (cat) => cat.name === params.categoryName,
-      ).vectorStore;
+      if (params.categoryName === '@Default') {
+        currentChat.categoryName = params.categoryName;
+        currentChat.sources = [];
+        currentChat.vectorStore = null;
+        currentChat.chain = null;
+      } else {
+        currentChat.categoryName = params.categoryName;
+        const categorySources = this.categories.find(
+          (cat) => cat.name === params.categoryName,
+        ).categoryContent;
+        currentChat.sources = categorySources.files
+          .map((s) => s.name)
+          .concat(categorySources.links.map((l) => l.name));
+        currentChat.vectorStore = this.categories.find(
+          (cat) => cat.name === params.categoryName,
+        ).vectorStore;
+      }
       if (currentChat.vectorStore) {
         currentChat.chain = this.chainCreator(
           currentChat.model,
@@ -384,7 +397,11 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.model = model;
       currentChat.modelName = params.modelName;
     }
-    if (params.sources && params.sources.length) {
+    if (
+      params.sources &&
+      params.sources.length &&
+      params.categoryName !== '@Default'
+    ) {
       const vectorStore = await this.createVectorStorage(
         params.categoryName,
         params.sources,
@@ -528,7 +545,7 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.vectorStore = selectedCategory.vectorStore;
       currentChat.chain = this.chainCreator(
         currentChat.model,
-        currentChat.vectorStore.asRetriever(),
+        selectedCategory.vectorStore.asRetriever(),
       );
     }
     if (!currentChat.chain || !currentChat.sources.length) {
