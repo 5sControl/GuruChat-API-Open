@@ -190,6 +190,12 @@ If you want to contribute, read  our [contributing guide](CONTRIBUTING.md) to le
 
 We also have a list of [good first issues](https://github.com/5sControl/GuruChat-API_Open/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) that will help you make your first step to beсoming a 5S contributor.
 
+# **License**
+
+[GNU GPL-3.0](LICENSE)
+> Chat Guru API uses third party libraries that are distributed under their own terms (see [LICENSE-3RD-PARTY.md](https://github.com/5sControl/GuruChat-API-Open/blob/main/LICENSE-3RD-PARTY.md)).<br>
+
+
 <br>
 <div align="center">
   <a href="https://5controls.com/" style="text-decoration:none;">
