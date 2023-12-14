@@ -188,7 +188,7 @@ Please note that this project is released with a [Contributor Code of Conduct](C
 
 If you want to contribute, read  our [contributing guide](CONTRIBUTING.md) to learn about our development process and pull requests workflow.
 
-We also have a list of [good first issues](https://github.com/5sControl/GuruChat-API_Open/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) that will help you make your first step to beсoming a 5S contributor.
+We also have a list of [good first issues](https://github.com/5sControl/GuruChat-API-Open/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) that will help you make your first step to beсoming a 5S contributor.
 
 # **License**
 
