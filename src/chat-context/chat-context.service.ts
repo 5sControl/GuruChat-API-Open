@@ -369,7 +369,10 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.name = params.chatName;
     }
     if (params.categoryName) {
-      if (params.categoryName === '@Default') {
+      if (
+        params.categoryName === '@Default' ||
+        params.categoryName === 'undefined'
+      ) {
         currentChat.categoryName = params.categoryName;
         currentChat.sources = [];
         currentChat.vectorStore = null;
@@ -429,6 +432,10 @@ export class ChatContextService implements OnApplicationBootstrap {
         splittedDocs,
         this.embeddingModel,
       );
+      const currentCategory = this.categories.find(
+        (cat) => cat.name === categoryName,
+      );
+      await currentCategory.vectorStore.mergeFrom(linkVectorFormat);
       await linkVectorFormat.save(
         `${
           this.chatStorageBasePath
@@ -449,6 +456,10 @@ export class ChatContextService implements OnApplicationBootstrap {
         splittedDocs,
         this.embeddingModel,
       );
+      const currentCategory = this.categories.find(
+        (cat) => cat.name === categoryName,
+      );
+      await currentCategory.vectorStore.mergeFrom(fileVectorFormat);
       await fileVectorFormat.save(
         `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/faiss-saved-stores/${file.originalname}`,
       );
