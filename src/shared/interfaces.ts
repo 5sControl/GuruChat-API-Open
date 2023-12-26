@@ -1,5 +1,12 @@
 import { RetrievalQAChain } from 'langchain/chains';
 import { FaissStore } from 'langchain/vectorstores/faiss';
+import { PromptTemplate } from 'langchain/prompts';
+
+export interface Prompt {
+  title: string;
+  content: string;
+  promptTemplate: PromptTemplate;
+}
 
 interface SourceData {
   name: string;

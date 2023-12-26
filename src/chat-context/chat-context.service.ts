@@ -11,17 +11,19 @@ import { TextLoader } from 'langchain/document_loaders/fs/text';
 import * as fs from 'fs';
 import { CSVLoader } from 'langchain/document_loaders/fs/csv';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
-import { Category, Chat } from '../shared/interfaces';
+import { Category, Chat, Prompt } from '../shared/interfaces';
 import { v4 } from 'uuid';
-import { RetrievalQAChain } from 'langchain/chains';
+import { loadQAStuffChain, RetrievalQAChain } from 'langchain/chains';
 import { RecursiveUrlLoader } from 'langchain/document_loaders/web/recursive_url';
 import { compile } from 'html-to-text';
 import { ConfigService } from '@nestjs/config';
 import { HuggingFaceTransformersEmbeddings } from 'langchain/embeddings/hf_transformers';
 import { createReadStream } from 'fs';
+import { PromptTemplate } from 'langchain/prompts';
 
 @Injectable()
 export class ChatContextService implements OnApplicationBootstrap {
+  prompts: Prompt[] = [];
   chatStorageBasePath = `./src/docker-volume/`;
   availableModels = [
     'llama2:13b',
@@ -29,6 +31,12 @@ export class ChatContextService implements OnApplicationBootstrap {
     'zephyr',
     'starling-lm',
     'mistral-openorca',
+    'mixtral',
+    'phi',
+    'mistrallite',
+    'solar',
+    'bakllava',
+    'orca-mini',
   ];
   llamaUrl;
   categories: Category[] = [];
@@ -72,7 +80,20 @@ export class ChatContextService implements OnApplicationBootstrap {
     });
   }
 
-  private chainCreator(model: any, retriever: any) {
+  private chainCreator(
+    model: any,
+    retriever: any,
+    promptTemplate?: PromptTemplate,
+  ) {
+    if (promptTemplate) {
+      return new RetrievalQAChain({
+        combineDocumentsChain: loadQAStuffChain(model, {
+          prompt: promptTemplate,
+        }),
+        retriever,
+        inputKey: 'query',
+      });
+    }
     return RetrievalQAChain.fromLLM(model, retriever);
   }
 
@@ -84,6 +105,10 @@ export class ChatContextService implements OnApplicationBootstrap {
     fs.writeFileSync(
       `${this.chatStorageBasePath}backup/chats.txt`,
       JSON.stringify(this.chats),
+    );
+    fs.writeFileSync(
+      `${this.chatStorageBasePath}backup/prompts.txt`,
+      JSON.stringify(this.prompts),
     );
   }
 
@@ -148,8 +173,14 @@ export class ChatContextService implements OnApplicationBootstrap {
         encoding: 'utf8',
       }),
     );
+    const prompts = JSON.parse(
+      fs.readFileSync(`${this.chatStorageBasePath}backup/prompts.txt`, {
+        encoding: 'utf8',
+      }),
+    );
     this.categories = categories;
     this.chats = chats;
+    this.prompts = prompts;
     for (const category of this.categories) {
       let vectorStore = null;
       if (
@@ -190,6 +221,10 @@ export class ChatContextService implements OnApplicationBootstrap {
     }
   }
 
+  getPrompts() {
+    return this.prompts;
+  }
+
   getCategories() {
     return this.categories;
   }
@@ -200,6 +235,50 @@ export class ChatContextService implements OnApplicationBootstrap {
 
   getModels() {
     return this.availableModels;
+  }
+
+  async createPrompt(data: { title: string; content: string }) {
+    const promptExists = this.prompts.find(
+      (prompt) => (prompt.title = data.title),
+    );
+    if (promptExists) {
+      return 'Prompt with such name is already exists';
+    }
+    this.prompts.push({
+      title: data.title,
+      content: data.content,
+      promptTemplate: new PromptTemplate({
+        inputVariables: [],
+        template: data.content,
+      }),
+    });
+    this.backupData();
+    return this.prompts;
+  }
+
+  async editPrompt(data: { title: string; content?: string }) {
+    const currentPrompt = this.prompts.find(
+      (prompt) => (prompt.title = data.title),
+    );
+    if (!currentPrompt) {
+      return 'Prompt with such name not found';
+    }
+    currentPrompt.title = data.title;
+    if (data.content) {
+      currentPrompt.content = data.content;
+      currentPrompt.promptTemplate = new PromptTemplate({
+        inputVariables: [],
+        template: data.content,
+      });
+    }
+    this.backupData();
+    return this.prompts;
+  }
+
+  async removePrompt(data: { title: string }) {
+    this.prompts = this.prompts.filter((prompt) => prompt.title !== data.title);
+    this.backupData();
+    return this.prompts;
   }
 
   async createCategory(data: { name: string; description: string }) {
@@ -544,6 +623,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     prompt: string;
     chatId: string;
     categoryName: string;
+    promptTemplateTitle?: string;
   }) {
     const currentChat = this.chats.find((chat) => chat.id === params.chatId);
     if (!currentChat) {
@@ -554,10 +634,21 @@ export class ChatContextService implements OnApplicationBootstrap {
     );
     if (selectedCategory) {
       currentChat.vectorStore = selectedCategory.vectorStore;
-      currentChat.chain = this.chainCreator(
-        currentChat.model,
-        selectedCategory.vectorStore.asRetriever(),
-      );
+      if (params.promptTemplateTitle) {
+        const selectedTemplate = this.prompts.find(
+          (prompt) => (prompt.title = params.promptTemplateTitle),
+        );
+        currentChat.chain = this.chainCreator(
+          currentChat.model,
+          selectedCategory.vectorStore.asRetriever(),
+          selectedTemplate.promptTemplate,
+        );
+      } else {
+        currentChat.chain = this.chainCreator(
+          currentChat.model,
+          selectedCategory.vectorStore.asRetriever(),
+        );
+      }
     }
     if (!currentChat.chain || !currentChat.sources.length) {
       const answer = await currentChat.model.call(params.prompt);

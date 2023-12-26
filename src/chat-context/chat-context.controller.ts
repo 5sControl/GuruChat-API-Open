@@ -24,10 +24,47 @@ export class ChatContextController {
       chatId: string;
       prompt: string;
       categoryName: string;
+      promptTemplateTitle?: string;
     },
   ) {
     try {
       return this.chatContextService.askAssistant(query);
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
+  @Post('createPrompt')
+  async createPrompt(@Query() query: { title: string; content: string }) {
+    try {
+      return await this.chatContextService.createPrompt(query);
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
+  @Post('editPrompt')
+  async editPrompt(@Query() query: { title: string; content?: string }) {
+    try {
+      return await this.chatContextService.editPrompt(query);
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
+  @Post('removePrompt')
+  async removePrompt(@Query() query: { title: string }) {
+    try {
+      return await this.chatContextService.removePrompt(query);
     } catch (err) {
       if (err.message) {
         throw new HttpException(err.message, err.status);
@@ -83,6 +120,18 @@ export class ChatContextController {
         query.fileName,
         query.categoryName,
       );
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
+  @Get('getPrompts')
+  getPrompts() {
+    try {
+      return this.chatContextService.getPrompts();
     } catch (err) {
       if (err.message) {
         throw new HttpException(err.message, err.status);
