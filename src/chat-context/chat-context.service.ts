@@ -619,6 +619,13 @@ export class ChatContextService implements OnApplicationBootstrap {
     return new StreamableFile(file);
   }
 
+  async downloadPrompt(promptTemplateTitle: string) {
+    const selectedTemplate = this.prompts.find(
+      (prompt) => (prompt.title = promptTemplateTitle),
+    );
+    return `${selectedTemplate.title}: ${selectedTemplate.content}`;
+  }
+
   async askAssistant(params: {
     prompt: string;
     chatId: string;
@@ -651,9 +658,22 @@ export class ChatContextService implements OnApplicationBootstrap {
       }
     }
     if (!currentChat.chain || !currentChat.sources.length) {
-      const answer = await currentChat.model.call(params.prompt);
-      currentChat.history.push({ author: 'user', message: params.prompt });
-      currentChat.history.push({ author: 'chat', message: answer });
+      if (params.promptTemplateTitle) {
+        const selectedTemplate = this.prompts.find(
+          (prompt) => (prompt.title = params.promptTemplateTitle),
+        );
+        const prompt = PromptTemplate.fromTemplate(
+          `${selectedTemplate.content} Question: {question}`,
+        );
+        const runnable = prompt.pipe(currentChat.model);
+        const answer = await runnable.invoke({ question: params.prompt });
+        currentChat.history.push({ author: 'user', message: params.prompt });
+        currentChat.history.push({ author: 'chat', message: answer as string });
+      } else {
+        const answer = await currentChat.model.call(params.prompt);
+        currentChat.history.push({ author: 'user', message: params.prompt });
+        currentChat.history.push({ author: 'chat', message: answer });
+      }
     } else {
       const answer = await currentChat.chain.call({
         query: params.prompt,

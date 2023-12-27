@@ -249,6 +249,23 @@ export class ChatContextController {
     }
   }
 
+  @Get('downloadPromptTxt')
+  @Header('Content-Type', 'application/octet-stream')
+  @Header('Content-disposition', 'attachment; filename=file.txt')
+  async downloadPromptTxt(
+    @Query() query: { promptTitle: string },
+    @Response({ passthrough: true }) res: any,
+  ) {
+    try {
+      res.send(this.chatContextService.downloadPrompt(query.promptTitle));
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadFile(
