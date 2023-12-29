@@ -50,7 +50,9 @@ export class ChatContextController {
   }
 
   @Post('editPrompt')
-  async editPrompt(@Query() query: { title: string; content?: string }) {
+  async editPrompt(
+    @Query() query: { oldTitle: string; title?: string; content?: string },
+  ) {
     try {
       return await this.chatContextService.editPrompt(query);
     } catch (err) {

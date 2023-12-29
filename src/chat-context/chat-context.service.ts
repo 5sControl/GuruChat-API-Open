@@ -238,12 +238,6 @@ export class ChatContextService implements OnApplicationBootstrap {
   }
 
   async createPrompt(data: { title: string; content: string }) {
-    const promptExists = this.prompts.find(
-      (prompt) => (prompt.title = data.title),
-    );
-    if (promptExists) {
-      return 'Prompt with such name is already exists';
-    }
     this.prompts.push({
       title: data.title,
       content: data.content,
@@ -256,9 +250,13 @@ export class ChatContextService implements OnApplicationBootstrap {
     return this.prompts;
   }
 
-  async editPrompt(data: { title: string; content?: string }) {
+  async editPrompt(data: {
+    oldTitle: string;
+    title?: string;
+    content?: string;
+  }) {
     const currentPrompt = this.prompts.find(
-      (prompt) => (prompt.title = data.title),
+      (prompt) => (prompt.title = data.oldTitle),
     );
     if (!currentPrompt) {
       return 'Prompt with such name not found';
