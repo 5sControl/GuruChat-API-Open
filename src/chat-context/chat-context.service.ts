@@ -536,7 +536,11 @@ export class ChatContextService implements OnApplicationBootstrap {
       const currentCategory = this.categories.find(
         (cat) => cat.name === categoryName,
       );
-      await currentCategory.vectorStore.mergeFrom(fileVectorFormat);
+      if (currentCategory.vectorStore) {
+        await currentCategory.vectorStore.mergeFrom(fileVectorFormat);
+      } else {
+        currentCategory.vectorStore = fileVectorFormat;
+      }
       await fileVectorFormat.save(
         `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/faiss-saved-stores/${file.originalname}`,
       );
