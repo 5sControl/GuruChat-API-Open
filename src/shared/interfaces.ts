@@ -27,7 +27,7 @@ export interface Chat {
   id: string;
   name: string;
   categoryName: string;
-  chain: RetrievalQAChain;
+  chain: any;
   sources: string[];
   vectorStore: any;
   modelName: string;

@@ -13,13 +13,14 @@ import { CSVLoader } from 'langchain/document_loaders/fs/csv';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
 import { Category, Chat, Prompt } from '../shared/interfaces';
 import { v4 } from 'uuid';
-import { loadQAStuffChain, RetrievalQAChain } from 'langchain/chains';
+import { LLMChain, loadQAStuffChain, RetrievalQAChain } from 'langchain/chains';
 import { RecursiveUrlLoader } from 'langchain/document_loaders/web/recursive_url';
 import { compile } from 'html-to-text';
 import { ConfigService } from '@nestjs/config';
 import { HuggingFaceTransformersEmbeddings } from 'langchain/embeddings/hf_transformers';
 import { createReadStream } from 'fs';
 import { PromptTemplate } from 'langchain/prompts';
+import { formatDocumentsAsString } from 'langchain/util/document';
 
 @Injectable()
 export class ChatContextService implements OnApplicationBootstrap {
@@ -639,25 +640,56 @@ export class ChatContextService implements OnApplicationBootstrap {
       return 'invalid chat id';
     }
     const selectedCategory = this.categories.find(
-      (category) => category.name === params.categoryName,
+      (category) => category.name === currentChat.categoryName,
     );
-    if (selectedCategory) {
-      currentChat.vectorStore = selectedCategory.vectorStore;
+    if (currentChat.categoryName !== 'Default') {
       if (params.promptTemplateTitle) {
+        console.log('here');
         const selectedTemplate = this.prompts.find(
           (prompt) => (prompt.title = params.promptTemplateTitle),
         );
-        currentChat.chain = this.chainCreator(
-          currentChat.model,
-          selectedCategory.vectorStore.asRetriever(),
-          selectedTemplate.promptTemplate,
+        const prompt = PromptTemplate.fromTemplate(
+          `Use the following pieces of context to answer the question at the end. If you don't know the answer, try to make up an answer. Follow users, behaviour template: ${selectedTemplate.content}. Check if any reality composer file is mentioned in your answer, and if yes return file name in second part of the answer
+----------------
+REALITY COMPOSER FILES: {realityComposerList}
+----------------
+CONTEXT: {context}
+----------------
+QUESTION: {question}
+----------------
+First part: helpful answer
+Second part: rcproject file name
+`,
         );
-      } else {
-        currentChat.chain = this.chainCreator(
-          currentChat.model,
-          selectedCategory.vectorStore.asRetriever(),
+
+        const documentChain = new LLMChain({
+          llm: this.modelCreator(currentChat.modelName),
+          prompt,
+        });
+        currentChat.chain = documentChain;
+        const composerListLoader = await new DocxLoader(
+          `${this.chatStorageBasePath}uploads/ChatGuru/${currentChat.categoryName}/reality-composer/composerFilesList.docx`,
         );
+        const composerDocuments = await composerListLoader.load();
+        const relevantDocs = await currentChat.vectorStore
+          .asRetriever()
+          .getRelevantDocuments(params.prompt);
+        console.log('try to answer');
+        const answer = await currentChat.chain.invoke({
+          realityComposerList: formatDocumentsAsString(composerDocuments),
+          context: formatDocumentsAsString(relevantDocs),
+          question: params.prompt,
+        });
+        currentChat.history.push(
+          { author: 'user', message: params.prompt },
+          { author: 'chat', message: answer.text },
+        );
+        return this.chats;
       }
+      currentChat.chain = this.chainCreator(
+        currentChat.model,
+        selectedCategory.vectorStore.asRetriever(),
+      );
     }
     if (!currentChat.chain || !currentChat.sources.length) {
       if (params.promptTemplateTitle) {
@@ -665,23 +697,29 @@ export class ChatContextService implements OnApplicationBootstrap {
           (prompt) => (prompt.title = params.promptTemplateTitle),
         );
         const prompt = PromptTemplate.fromTemplate(
-          `${selectedTemplate.content} Question: {question}`,
+          `${selectedTemplate.content} answer user's question: {question}.`,
         );
         const runnable = prompt.pipe(currentChat.model);
         const answer = await runnable.invoke({ question: params.prompt });
-        currentChat.history.push({ author: 'user', message: params.prompt });
-        currentChat.history.push({ author: 'chat', message: answer as string });
+        currentChat.history.push(
+          { author: 'user', message: params.prompt },
+          { author: 'chat', message: answer as string },
+        );
       } else {
         const answer = await currentChat.model.call(params.prompt);
-        currentChat.history.push({ author: 'user', message: params.prompt });
-        currentChat.history.push({ author: 'chat', message: answer });
+        currentChat.history.push(
+          { author: 'user', message: params.prompt },
+          { author: 'chat', message: answer },
+        );
       }
     } else {
       const answer = await currentChat.chain.call({
         query: params.prompt,
       });
-      currentChat.history.push({ author: 'user', message: params.prompt });
-      currentChat.history.push({ author: 'chat', message: answer.text });
+      currentChat.history.push(
+        { author: 'user', message: params.prompt },
+        { author: 'chat', message: answer.text },
+      );
     }
     return this.chats;
   }
