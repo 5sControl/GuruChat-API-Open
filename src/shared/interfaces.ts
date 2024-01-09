@@ -1,4 +1,3 @@
-import { RetrievalQAChain } from 'langchain/chains';
 import { FaissStore } from 'langchain/vectorstores/faiss';
 import { PromptTemplate } from 'langchain/prompts';
 
@@ -35,5 +34,6 @@ export interface Chat {
   history: {
     author: 'chat' | 'user';
     message: string;
+    mentionedRCFiles?: string[];
   }[];
 }

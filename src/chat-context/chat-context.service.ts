@@ -24,6 +24,12 @@ import { formatDocumentsAsString } from 'langchain/util/document';
 
 @Injectable()
 export class ChatContextService implements OnApplicationBootstrap {
+  listOfRCFiles = [
+    'room-temperature-controller.rcproject.zip',
+    'NA.rcproject.zip',
+    'power-button.rcproject.zip',
+    'safety-valve.rcproject.zip',
+  ];
   prompts: Prompt[] = [];
   chatStorageBasePath = `./src/docker-volume/`;
   availableModels = [
@@ -38,6 +44,8 @@ export class ChatContextService implements OnApplicationBootstrap {
     'solar',
     'bakllava',
     'orca-mini',
+    'neural-chat',
+    'vicuna:13b-16k',
   ];
   llamaUrl;
   categories: Category[] = [];
@@ -77,7 +85,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     return new Ollama({
       baseUrl: `${this.llamaUrl}`,
       model: modelName,
-      temperature: 0.5,
+      temperature: 0.3,
     });
   }
 
@@ -593,33 +601,46 @@ export class ChatContextService implements OnApplicationBootstrap {
     const currentCategory = this.categories.find(
       (category) => category.name === categoryName,
     );
-    if (file) {
-      currentCategory.categoryContent.files.push({
-        name: file.originalname,
-        date: `${date.getDate()}.${date.getUTCMonth()}.${date.getFullYear()}`,
-        size: file.size,
-      });
-      this.backupData();
-    }
-    if (link) {
-      currentCategory.categoryContent.links.push({
-        name: link,
-        date: `${date.getDate()}.${date.getUTCMonth()}.${date.getFullYear()}`,
-      });
-    }
     if (link || file) {
       await this.processIncomingData(categoryName, file, link);
+      if (file) {
+        currentCategory.categoryContent.files.push({
+          name: file.originalname,
+          date: `${date.getDate()}.${date.getUTCMonth()}.${date.getFullYear()}`,
+          size: file.size,
+        });
+        this.backupData();
+      }
+      if (link) {
+        currentCategory.categoryContent.links.push({
+          name: link,
+          date: `${date.getDate()}.${date.getUTCMonth()}.${date.getFullYear()}`,
+        });
+      }
       return this.categories;
     } else {
       return 'error uploading file';
     }
   }
 
-  async downloadFile(categoryName: string, fileName: string) {
-    const file = createReadStream(
-      `${this.chatStorageBasePath}uploads/ChatGuru/${categoryName}/files/${fileName}`,
-    );
-    return new StreamableFile(file);
+  async downloadFile(params: {
+    categoryName: string;
+    fileName?: string;
+    rcFileName?: string;
+  }) {
+    if (params.fileName) {
+      const file = createReadStream(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${params.categoryName}/files/${params.fileName}`,
+      );
+      return new StreamableFile(file);
+    }
+    if (params.rcFileName) {
+      const file = createReadStream(
+        `${this.chatStorageBasePath}uploads/ChatGuru/${params.categoryName}/reality-composer/${params.rcFileName}`,
+      );
+      return new StreamableFile(file);
+    }
+    return 'not enough data';
   }
 
   async downloadPrompt(promptTemplateTitle: string) {
@@ -649,17 +670,17 @@ export class ChatContextService implements OnApplicationBootstrap {
           (prompt) => (prompt.title = params.promptTemplateTitle),
         );
         const prompt = PromptTemplate.fromTemplate(
-          `Use the following pieces of context to answer the question at the end. If you don't know the answer, try to make up an answer. Follow users, behaviour template: ${selectedTemplate.content}. Check if any reality composer file is mentioned in your answer, and if yes return file name in second part of the answer
-----------------
-REALITY COMPOSER FILES: {realityComposerList}
-----------------
-CONTEXT: {context}
-----------------
-QUESTION: {question}
-----------------
-First part: helpful answer
-Second part: rcproject file name
-`,
+          `Use this technical instruction {context} to help user with using, maintaining and repairing some facility, use also your own data to answer common questions not connected with instruction.
+            Your role model: ${selectedTemplate.content}.
+            You have a list of parts with corresponding AR model files: {realityComposerList}, check if your answer mention parts from this list.
+            If yes edit your answer by adding corresponding rcproject file name for mentioned part right in answer text.
+            ----------------
+            REALITY COMPOSER FILES: {realityComposerList}
+            ----------------
+            CONTEXT: {context}
+            ----------------
+            QUESTION: {question}
+          `,
         );
 
         const documentChain = new LLMChain({
@@ -680,9 +701,18 @@ Second part: rcproject file name
           context: formatDocumentsAsString(relevantDocs),
           question: params.prompt,
         });
+        const mentionedFiles = this.listOfRCFiles.filter((filename) => {
+          return answer.text.includes(filename);
+        });
+
+        console.log(mentionedFiles);
         currentChat.history.push(
           { author: 'user', message: params.prompt },
-          { author: 'chat', message: answer.text },
+          {
+            author: 'chat',
+            message: answer.text,
+            mentionedRCFiles: mentionedFiles,
+          },
         );
         return this.chats;
       }

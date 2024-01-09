@@ -231,18 +231,22 @@ export class ChatContextController {
   @Get('download')
   @Header('Content-Type', 'application/json')
   async downloadFile(
-    @Query() query: { categoryName: string; fileName: string },
+    @Query()
+    query: {
+      categoryName: string;
+      fileName?: string;
+      rcFileName?: string;
+    },
     @Response({ passthrough: true }) res: any,
   ) {
     try {
       res.set({
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename=${query.fileName}`,
+        'Content-Disposition': `attachment; filename=${
+          query.fileName ?? query.rcFileName
+        }`,
       });
-      return this.chatContextService.downloadFile(
-        query.categoryName,
-        query.fileName,
-      );
+      return this.chatContextService.downloadFile(query);
     } catch (err) {
       if (err.message) {
         throw new HttpException(err.message, err.status);
