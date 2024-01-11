@@ -663,8 +663,8 @@ export class ChatContextService implements OnApplicationBootstrap {
     const selectedCategory = this.categories.find(
       (category) => category.name === currentChat.categoryName,
     );
-    if (currentChat.categoryName.toLowerCase() === 'taqi') {
-      if (params.promptTemplateTitle) {
+    if (currentChat.categoryName !== 'Default') {
+      if (params.promptTemplateTitle === 'taqi') {
         console.log('here');
         const selectedTemplate = this.prompts.find(
           (prompt) => (prompt.title = params.promptTemplateTitle),
@@ -716,7 +716,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         );
         return this.chats;
       }
-      if (currentChat.categoryName.toLowerCase() !== 'default') {
+      if (params.promptTemplateTitle) {
         const selectedTemplate = this.prompts.find(
           (prompt) => (prompt.title = params.promptTemplateTitle),
         );
