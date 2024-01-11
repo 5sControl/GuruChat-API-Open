@@ -663,7 +663,11 @@ export class ChatContextService implements OnApplicationBootstrap {
     const selectedCategory = this.categories.find(
       (category) => category.name === currentChat.categoryName,
     );
-    if (currentChat.categoryName && currentChat.categoryName !== 'Default') {
+    if (
+      currentChat.categoryName &&
+      currentChat.sources.length &&
+      currentChat.categoryName !== 'Default'
+    ) {
       if (params.promptTemplateTitle === 'taqi') {
         console.log('here');
         const selectedTemplate = this.prompts.find(
