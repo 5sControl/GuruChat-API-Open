@@ -663,7 +663,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     const selectedCategory = this.categories.find(
       (category) => category.name === currentChat.categoryName,
     );
-    if (currentChat.categoryName !== 'Default') {
+    if (currentChat.categoryName && currentChat.categoryName !== 'Default') {
       if (params.promptTemplateTitle === 'taqi') {
         console.log('here');
         const selectedTemplate = this.prompts.find(
@@ -682,7 +682,6 @@ export class ChatContextService implements OnApplicationBootstrap {
             QUESTION: {question}
           `,
         );
-
         const documentChain = new LLMChain({
           llm: this.modelCreator(currentChat.modelName),
           prompt,
@@ -695,7 +694,6 @@ export class ChatContextService implements OnApplicationBootstrap {
         const relevantDocs = await currentChat.vectorStore
           .asRetriever()
           .getRelevantDocuments(params.prompt);
-        console.log('try to answer');
         const answer = await currentChat.chain.invoke({
           realityComposerList: formatDocumentsAsString(composerDocuments),
           context: formatDocumentsAsString(relevantDocs),
@@ -704,8 +702,6 @@ export class ChatContextService implements OnApplicationBootstrap {
         const mentionedFiles = this.listOfRCFiles.filter((filename) => {
           return answer.text.includes(filename);
         });
-
-        console.log(mentionedFiles);
         currentChat.history.push(
           { author: 'user', message: params.prompt },
           {
