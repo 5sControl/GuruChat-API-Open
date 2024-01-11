@@ -663,7 +663,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     const selectedCategory = this.categories.find(
       (category) => category.name === currentChat.categoryName,
     );
-    if (currentChat.categoryName !== 'Default') {
+    if (currentChat.categoryName.toLowerCase() === 'taqi') {
       if (params.promptTemplateTitle) {
         console.log('here');
         const selectedTemplate = this.prompts.find(
@@ -716,10 +716,21 @@ export class ChatContextService implements OnApplicationBootstrap {
         );
         return this.chats;
       }
-      currentChat.chain = this.chainCreator(
-        currentChat.model,
-        selectedCategory.vectorStore.asRetriever(),
-      );
+      if (currentChat.categoryName.toLowerCase() !== 'default') {
+        const selectedTemplate = this.prompts.find(
+          (prompt) => (prompt.title = params.promptTemplateTitle),
+        );
+        currentChat.chain = this.chainCreator(
+          currentChat.model,
+          selectedCategory.vectorStore.asRetriever(),
+          selectedTemplate.promptTemplate,
+        );
+      } else {
+        currentChat.chain = this.chainCreator(
+          currentChat.model,
+          selectedCategory.vectorStore.asRetriever(),
+        );
+      }
     }
     if (!currentChat.chain || !currentChat.sources.length) {
       if (params.promptTemplateTitle) {
