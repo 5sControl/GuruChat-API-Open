@@ -666,12 +666,28 @@ export class ChatContextService implements OnApplicationBootstrap {
       (prompt) => prompt.title === currentChat.promptTemplateTitle,
     );
 
+    const addToHistory = (answer: string, mentionedRCFiles?: string[]) => {
+      currentChat.history.push(
+        {
+          author: 'user',
+          message: params.prompt,
+          usedCategory: currentChat.categoryName,
+          usedPrompt: currentChat.promptTemplateTitle,
+        },
+        {
+          author: 'chat',
+          message: answer,
+          mentionedRCFiles,
+          usedCategory: currentChat.categoryName,
+          usedPrompt: currentChat.promptTemplateTitle,
+        },
+      );
+    };
+
     const askBlankModel = async () => {
       const answer = await currentChat.model.call(params.prompt);
-      currentChat.history.push(
-        { author: 'user', message: params.prompt },
-        { author: 'chat', message: answer },
-      );
+      addToHistory(answer);
+      this.backupData();
       return this.chats;
     };
 
@@ -680,7 +696,6 @@ export class ChatContextService implements OnApplicationBootstrap {
       (!selectedCategory || !currentChat.sources.length) &&
       !selectedPromptTemplate
     ) {
-      console.log('blank');
       return await askBlankModel();
     }
 
@@ -691,10 +706,7 @@ export class ChatContextService implements OnApplicationBootstrap {
       );
       const runnable = prompt.pipe(currentChat.model);
       const answer = await runnable.invoke({ question: params.prompt });
-      currentChat.history.push(
-        { author: 'user', message: params.prompt },
-        { author: 'chat', message: answer as string },
-      );
+      addToHistory(answer as string);
       this.backupData();
       return this.chats;
     }
@@ -712,10 +724,7 @@ export class ChatContextService implements OnApplicationBootstrap {
       const answer = await currentChat.chain.call({
         query: params.prompt,
       });
-      currentChat.history.push(
-        { author: 'user', message: params.prompt },
-        { author: 'chat', message: answer.text },
-      );
+      addToHistory(answer.text);
       this.backupData();
       return this.chats;
     }
@@ -755,14 +764,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         const mentionedFiles = this.listOfRCFiles.filter((filename) => {
           return answer.text.includes(filename);
         });
-        currentChat.history.push(
-          { author: 'user', message: params.prompt },
-          {
-            author: 'chat',
-            message: answer.text,
-            mentionedRCFiles: mentionedFiles,
-          },
-        );
+        addToHistory(answer.text, mentionedFiles);
         this.backupData();
         return this.chats;
       }
@@ -784,13 +786,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         context: formatDocumentsAsString(relevantDocs),
         question: params.prompt,
       });
-      currentChat.history.push(
-        { author: 'user', message: params.prompt },
-        {
-          author: 'chat',
-          message: answer.text,
-        },
-      );
+      addToHistory(answer.text);
       this.backupData();
       return this.chats;
     }

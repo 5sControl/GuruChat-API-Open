@@ -34,6 +34,8 @@ export interface Chat {
   model: any;
   history: {
     author: 'chat' | 'user';
+    usedCategory?: string;
+    usedPrompt?: string;
     message: string;
     mentionedRCFiles?: string[];
   }[];
