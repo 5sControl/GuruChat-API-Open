@@ -26,6 +26,7 @@ export interface Chat {
   id: string;
   name: string;
   categoryName: string;
+  promptTemplateTitle: string;
   chain: any;
   sources: string[];
   vectorStore: any;

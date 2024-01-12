@@ -23,8 +23,6 @@ export class ChatContextController {
     query: {
       chatId: string;
       prompt: string;
-      categoryName: string;
-      promptTemplateTitle?: string;
     },
   ) {
     try {
@@ -216,6 +214,7 @@ export class ChatContextController {
       sources?: string[];
       chatName?: string;
       modelName?: string;
+      promptTemplateTitle?: string;
     },
   ) {
     try {

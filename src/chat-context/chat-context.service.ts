@@ -13,7 +13,7 @@ import { CSVLoader } from 'langchain/document_loaders/fs/csv';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
 import { Category, Chat, Prompt } from '../shared/interfaces';
 import { v4 } from 'uuid';
-import { LLMChain, loadQAStuffChain, RetrievalQAChain } from 'langchain/chains';
+import { LLMChain, RetrievalQAChain } from 'langchain/chains';
 import { RecursiveUrlLoader } from 'langchain/document_loaders/web/recursive_url';
 import { compile } from 'html-to-text';
 import { ConfigService } from '@nestjs/config';
@@ -89,20 +89,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     });
   }
 
-  private chainCreator(
-    model: any,
-    retriever: any,
-    promptTemplate?: PromptTemplate,
-  ) {
-    if (promptTemplate) {
-      return new RetrievalQAChain({
-        combineDocumentsChain: loadQAStuffChain(model, {
-          prompt: promptTemplate,
-        }),
-        retriever,
-        inputKey: 'query',
-      });
-    }
+  private chainCreator(model: any, retriever: any) {
     return RetrievalQAChain.fromLLM(model, retriever);
   }
 
@@ -409,6 +396,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         modelName,
         model,
         categoryName,
+        promptTemplateTitle: '',
         sources: contextSources,
         chain,
         vectorStore,
@@ -424,6 +412,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         modelName,
         model,
         categoryName,
+        promptTemplateTitle: '',
         sources: [],
         chain: null,
         vectorStore: null,
@@ -437,6 +426,7 @@ export class ChatContextService implements OnApplicationBootstrap {
 
   async removeChat(chatId: string) {
     this.chats = this.chats.filter((chat) => chat.id !== chatId);
+    this.backupData();
     return this.chats;
   }
 
@@ -446,6 +436,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     sources?: string[];
     chatName?: string;
     modelName?: string;
+    promptTemplateTitle?: string;
   }) {
     const currentChat = this.chats.find((chat) => chat.id === params.chatId);
     const model = params.modelName
@@ -498,6 +489,10 @@ export class ChatContextService implements OnApplicationBootstrap {
       currentChat.chain = this.chainCreator(model, vectorStore.asRetriever());
       currentChat.sources = params.sources;
     }
+    if (params.promptTemplateTitle) {
+      currentChat.promptTemplateTitle = params.promptTemplateTitle;
+    }
+    this.backupData();
     return this.chats;
   }
 
@@ -568,6 +563,12 @@ export class ChatContextService implements OnApplicationBootstrap {
           loader = await new PDFLoader(filePath);
           break;
         }
+        case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          'application/vnd.ms-excel': {
+          console.log('here');
+          loader = await new TextLoader(filePath);
+          break;
+        }
         case 'text/csv': {
           loader = await new CSVLoader(filePath);
           break;
@@ -606,7 +607,9 @@ export class ChatContextService implements OnApplicationBootstrap {
       if (file) {
         currentCategory.categoryContent.files.push({
           name: file.originalname,
-          date: `${date.getDate()}.${date.getUTCMonth()}.${date.getFullYear()}`,
+          date: `${date.getDate()}.${
+            date.getUTCMonth() + 1
+          }.${date.getFullYear()}`,
           size: file.size,
         });
         this.backupData();
@@ -616,6 +619,7 @@ export class ChatContextService implements OnApplicationBootstrap {
           name: link,
           date: `${date.getDate()}.${date.getUTCMonth()}.${date.getFullYear()}`,
         });
+        this.backupData();
       }
       return this.categories;
     } else {
@@ -650,12 +654,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     return `${selectedTemplate.title}: ${selectedTemplate.content}`;
   }
 
-  async askAssistant(params: {
-    prompt: string;
-    chatId: string;
-    categoryName: string;
-    promptTemplateTitle?: string;
-  }) {
+  async askAssistant(params: { prompt: string; chatId: string }) {
     const currentChat = this.chats.find((chat) => chat.id === params.chatId);
     if (!currentChat) {
       return 'invalid chat id';
@@ -663,19 +662,70 @@ export class ChatContextService implements OnApplicationBootstrap {
     const selectedCategory = this.categories.find(
       (category) => category.name === currentChat.categoryName,
     );
+    const selectedPromptTemplate = this.prompts.find(
+      (prompt) => prompt.title === currentChat.promptTemplateTitle,
+    );
+
+    const askBlankModel = async () => {
+      const answer = await currentChat.model.call(params.prompt);
+      currentChat.history.push(
+        { author: 'user', message: params.prompt },
+        { author: 'chat', message: answer },
+      );
+      return this.chats;
+    };
+
+    //Request to blank model
     if (
-      currentChat.categoryName &&
-      currentChat.sources.length &&
-      currentChat.categoryName !== 'Default'
+      (!selectedCategory || !currentChat.sources.length) &&
+      !selectedPromptTemplate
     ) {
-      if (params.promptTemplateTitle === 'taqi') {
-        console.log('here');
-        const selectedTemplate = this.prompts.find(
-          (prompt) => (prompt.title = params.promptTemplateTitle),
-        );
+      console.log('blank');
+      return await askBlankModel();
+    }
+
+    //Request to blank model with prompt template
+    if (!selectedCategory && selectedPromptTemplate) {
+      const prompt = PromptTemplate.fromTemplate(
+        `${selectedPromptTemplate.content} answer user's question: {question}.`,
+      );
+      const runnable = prompt.pipe(currentChat.model);
+      const answer = await runnable.invoke({ question: params.prompt });
+      currentChat.history.push(
+        { author: 'user', message: params.prompt },
+        { author: 'chat', message: answer as string },
+      );
+      this.backupData();
+      return this.chats;
+    }
+
+    //Request to chain without prompt template
+    if (
+      selectedCategory &&
+      currentChat.sources.length &&
+      !selectedPromptTemplate
+    ) {
+      currentChat.chain = this.chainCreator(
+        currentChat.model,
+        selectedCategory.vectorStore.asRetriever(),
+      );
+      const answer = await currentChat.chain.call({
+        query: params.prompt,
+      });
+      currentChat.history.push(
+        { author: 'user', message: params.prompt },
+        { author: 'chat', message: answer.text },
+      );
+      this.backupData();
+      return this.chats;
+    }
+
+    //Request tot chain with prompt template
+    if (selectedCategory && selectedPromptTemplate) {
+      if (selectedPromptTemplate.title === 'taqi') {
         const prompt = PromptTemplate.fromTemplate(
           `Use this technical instruction {context} to help user with using, maintaining and repairing some facility, use also your own data to answer common questions not connected with instruction.
-            Your role model: ${selectedTemplate.content}.
+            Your role model: ${selectedPromptTemplate.content}.
             You have a list of parts with corresponding AR model files: {realityComposerList}, check if your answer mention parts from this list.
             If yes edit your answer by adding corresponding rcproject file name for mentioned part right in answer text.
             ----------------
@@ -686,11 +736,10 @@ export class ChatContextService implements OnApplicationBootstrap {
             QUESTION: {question}
           `,
         );
-        const documentChain = new LLMChain({
+        currentChat.chain = new LLMChain({
           llm: this.modelCreator(currentChat.modelName),
           prompt,
         });
-        currentChat.chain = documentChain;
         const composerListLoader = await new DocxLoader(
           `${this.chatStorageBasePath}uploads/ChatGuru/${currentChat.categoryName}/reality-composer/composerFilesList.docx`,
         );
@@ -714,54 +763,36 @@ export class ChatContextService implements OnApplicationBootstrap {
             mentionedRCFiles: mentionedFiles,
           },
         );
+        this.backupData();
         return this.chats;
       }
-      if (params.promptTemplateTitle) {
-        const selectedTemplate = this.prompts.find(
-          (prompt) => (prompt.title = params.promptTemplateTitle),
-        );
-        currentChat.chain = this.chainCreator(
-          currentChat.model,
-          selectedCategory.vectorStore.asRetriever(),
-          selectedTemplate.promptTemplate,
-        );
-      } else {
-        currentChat.chain = this.chainCreator(
-          currentChat.model,
-          selectedCategory.vectorStore.asRetriever(),
-        );
-      }
-    }
-    if (!currentChat.chain || !currentChat.sources.length) {
-      if (params.promptTemplateTitle) {
-        const selectedTemplate = this.prompts.find(
-          (prompt) => (prompt.title = params.promptTemplateTitle),
-        );
-        const prompt = PromptTemplate.fromTemplate(
-          `${selectedTemplate.content} answer user's question: {question}.`,
-        );
-        const runnable = prompt.pipe(currentChat.model);
-        const answer = await runnable.invoke({ question: params.prompt });
-        currentChat.history.push(
-          { author: 'user', message: params.prompt },
-          { author: 'chat', message: answer as string },
-        );
-      } else {
-        const answer = await currentChat.model.call(params.prompt);
-        currentChat.history.push(
-          { author: 'user', message: params.prompt },
-          { author: 'chat', message: answer },
-        );
-      }
-    } else {
-      const answer = await currentChat.chain.call({
-        query: params.prompt,
+      const prompt = PromptTemplate.fromTemplate(
+        `Use provided context for this task: ${selectedPromptTemplate.content}.
+            CONTEXT: {context}
+            ----------------
+            QUESTION: {question}
+          `,
+      );
+      currentChat.chain = new LLMChain({
+        llm: this.modelCreator(currentChat.modelName),
+        prompt,
+      });
+      const relevantDocs = await currentChat.vectorStore
+        .asRetriever()
+        .getRelevantDocuments(params.prompt);
+      const answer = await currentChat.chain.invoke({
+        context: formatDocumentsAsString(relevantDocs),
+        question: params.prompt,
       });
       currentChat.history.push(
         { author: 'user', message: params.prompt },
-        { author: 'chat', message: answer.text },
+        {
+          author: 'chat',
+          message: answer.text,
+        },
       );
+      this.backupData();
+      return this.chats;
     }
-    return this.chats;
   }
 }
