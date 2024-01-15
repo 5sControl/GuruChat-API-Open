@@ -39,4 +39,5 @@ export interface Chat {
     message: string;
     mentionedRCFiles?: string[];
   }[];
+  autoplayAnswers?: boolean;
 }

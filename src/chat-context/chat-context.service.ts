@@ -437,6 +437,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     chatName?: string;
     modelName?: string;
     promptTemplateTitle?: string;
+    autoplayAnswers?: boolean;
   }) {
     const currentChat = this.chats.find((chat) => chat.id === params.chatId);
     const model = params.modelName
@@ -444,6 +445,9 @@ export class ChatContextService implements OnApplicationBootstrap {
       : currentChat.model;
     if (params.chatName) {
       currentChat.name = params.chatName;
+    }
+    if (params.autoplayAnswers) {
+      currentChat.autoplayAnswers = params.autoplayAnswers;
     }
     if (params.categoryName) {
       if (
