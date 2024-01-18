@@ -46,6 +46,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     'orca-mini',
     'neural-chat',
     'vicuna:13b-16k',
+    'openhermes',
   ];
   llamaUrl;
   categories: Category[] = [];
@@ -257,7 +258,9 @@ export class ChatContextService implements OnApplicationBootstrap {
     if (!currentPrompt) {
       return 'Prompt with such name not found';
     }
-    currentPrompt.title = data.title;
+    if (data.title) {
+      currentPrompt.title = data.title;
+    }
     if (data.content) {
       currentPrompt.content = data.content;
       currentPrompt.promptTemplate = new PromptTemplate({
@@ -670,6 +673,15 @@ export class ChatContextService implements OnApplicationBootstrap {
       (prompt) => prompt.title === currentChat.promptTemplateTitle,
     );
 
+    const historyAsString = currentChat.history
+      .slice(-6)
+      .reduce(
+        (acc, message) =>
+          acc +
+          `${message.author === 'chat' ? 'AI' : 'Human'}: ${message.message}/`,
+        '',
+      );
+
     const addToHistory = (answer: string, mentionedRCFiles?: string[]) => {
       currentChat.history.push(
         {
@@ -689,8 +701,15 @@ export class ChatContextService implements OnApplicationBootstrap {
     };
 
     const askBlankModel = async () => {
-      const answer = await currentChat.model.call(params.prompt);
-      addToHistory(answer);
+      const prompt = PromptTemplate.fromTemplate(
+        `answer user's question: {question}. Also use previous chat history: {chatHistory}`,
+      );
+      const runnable = prompt.pipe(currentChat.model);
+      const answer = await runnable.invoke({
+        question: params.prompt,
+        chatHistory: historyAsString ?? '',
+      });
+      addToHistory(answer as string);
       this.backupData();
       return this.chats;
     };
@@ -706,10 +725,13 @@ export class ChatContextService implements OnApplicationBootstrap {
     //Request to blank model with prompt template
     if (!selectedCategory && selectedPromptTemplate) {
       const prompt = PromptTemplate.fromTemplate(
-        `${selectedPromptTemplate.content} answer user's question: {question}.`,
+        `${selectedPromptTemplate.content} answer user's question: {question}. Also use previous chat history: {chatHistory}`,
       );
       const runnable = prompt.pipe(currentChat.model);
-      const answer = await runnable.invoke({ question: params.prompt });
+      const answer = await runnable.invoke({
+        question: params.prompt,
+        chatHistory: historyAsString ?? '',
+      });
       addToHistory(answer as string);
       this.backupData();
       return this.chats;
@@ -733,7 +755,7 @@ export class ChatContextService implements OnApplicationBootstrap {
       return this.chats;
     }
 
-    //Request tot chain with prompt template
+    //Request to chain with prompt template
     if (selectedCategory && selectedPromptTemplate) {
       if (selectedPromptTemplate.title === 'taqi') {
         const prompt = PromptTemplate.fromTemplate(
@@ -745,6 +767,8 @@ export class ChatContextService implements OnApplicationBootstrap {
             REALITY COMPOSER FILES: {realityComposerList}
             ----------------
             CONTEXT: {context}
+            ----------------
+            CHAT HISTORY: {chatHistory}
             ----------------
             QUESTION: {question}
           `,
@@ -764,6 +788,7 @@ export class ChatContextService implements OnApplicationBootstrap {
           realityComposerList: formatDocumentsAsString(composerDocuments),
           context: formatDocumentsAsString(relevantDocs),
           question: params.prompt,
+          chatHistory: historyAsString ?? '',
         });
         const mentionedFiles = this.listOfRCFiles.filter((filename) => {
           return answer.text.includes(filename);
@@ -775,6 +800,8 @@ export class ChatContextService implements OnApplicationBootstrap {
       const prompt = PromptTemplate.fromTemplate(
         `Use provided context for this task: ${selectedPromptTemplate.content}.
             CONTEXT: {context}
+            ----------------
+            CHAT HISTORY: {chatHistory}
             ----------------
             QUESTION: {question}
           `,
@@ -789,6 +816,7 @@ export class ChatContextService implements OnApplicationBootstrap {
       const answer = await currentChat.chain.invoke({
         context: formatDocumentsAsString(relevantDocs),
         question: params.prompt,
+        chatHistory: historyAsString ?? '',
       });
       addToHistory(answer.text);
       this.backupData();
