@@ -37,16 +37,13 @@ export class ChatContextService implements OnApplicationBootstrap {
     'openchat',
     'zephyr',
     'starling-lm',
-    'mistral-openorca',
     'mixtral',
     'phi',
-    'mistrallite',
     'solar',
-    'bakllava',
-    'orca-mini',
-    'neural-chat',
+    'mistral',
     'vicuna:13b-16k',
     'openhermes',
+    'everithinglm',
   ];
   llamaUrl;
   categories: Category[] = [];
@@ -86,7 +83,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     return new Ollama({
       baseUrl: `${this.llamaUrl}`,
       model: modelName,
-      temperature: 0.3,
+      temperature: 1.8,
     });
   }
 
@@ -670,7 +667,9 @@ export class ChatContextService implements OnApplicationBootstrap {
       (category) => category.name === currentChat.categoryName,
     );
     const selectedPromptTemplate = this.prompts.find(
-      (prompt) => prompt.title === currentChat.promptTemplateTitle,
+      (prompt) =>
+        prompt.title === currentChat.promptTemplateTitle &&
+        currentChat.promptTemplateTitle !== 'blank',
     );
 
     const historyAsString = currentChat.history
@@ -701,6 +700,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     };
 
     const askBlankModel = async () => {
+      console.log(currentChat.promptTemplateTitle);
       const prompt = PromptTemplate.fromTemplate(
         `answer user's question: {question}. Also use previous chat history: {chatHistory}`,
       );
