@@ -768,8 +768,6 @@ export class ChatContextService implements OnApplicationBootstrap {
             ----------------
             CONTEXT: {context}
             ----------------
-            CHAT HISTORY: {chatHistory}
-            ----------------
             QUESTION: {question}
           `,
         );
@@ -788,7 +786,6 @@ export class ChatContextService implements OnApplicationBootstrap {
           realityComposerList: formatDocumentsAsString(composerDocuments),
           context: formatDocumentsAsString(relevantDocs),
           question: params.prompt,
-          chatHistory: historyAsString ?? '',
         });
         const mentionedFiles = this.listOfRCFiles.filter((filename) => {
           return answer.text.includes(filename);
