@@ -21,7 +21,6 @@ import { HuggingFaceTransformersEmbeddings } from 'langchain/embeddings/hf_trans
 import { createReadStream } from 'fs';
 import { PromptTemplate } from 'langchain/prompts';
 import { formatDocumentsAsString } from 'langchain/util/document';
-import { Client } from '@hubspot/api-client';
 
 @Injectable()
 export class ChatContextService implements OnApplicationBootstrap {
@@ -65,9 +64,6 @@ export class ChatContextService implements OnApplicationBootstrap {
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
     this.embeddingModel = new HuggingFaceTransformersEmbeddings();
-    this.hubspot = new Client({
-      accessToken: 'pat-eu1-f4d5a0a3-b6e8-48d7-a4f8-04dfde2496d8',
-    });
   }
 
   private async createVectorStorage(
