@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ChatContextModule } from './chat-context/chat-context.module';
 import { ConfigModule } from '@nestjs/config';
 import { SummarizationModule } from './summarization/summarization.module';
+import { AIExtensionModule } from './aiExtention/aiExtension.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { SummarizationModule } from './summarization/summarization.module';
       envFilePath: './src/docker-volume/.env',
     }),
     SummarizationModule,
+    AIExtensionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

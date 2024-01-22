@@ -21,6 +21,7 @@ import { HuggingFaceTransformersEmbeddings } from 'langchain/embeddings/hf_trans
 import { createReadStream } from 'fs';
 import { PromptTemplate } from 'langchain/prompts';
 import { formatDocumentsAsString } from 'langchain/util/document';
+import { Client } from '@hubspot/api-client';
 
 @Injectable()
 export class ChatContextService implements OnApplicationBootstrap {
@@ -35,6 +36,8 @@ export class ChatContextService implements OnApplicationBootstrap {
   availableModels = [
     'llama2:13b',
     'openchat',
+    'openchat:16K',
+    'polishLLaMa',
     'zephyr',
     'starling-lm',
     'mixtral',
@@ -43,7 +46,11 @@ export class ChatContextService implements OnApplicationBootstrap {
     'mistral',
     'vicuna:13b-16k',
     'openhermes',
-    'everithinglm',
+    'everythinglm',
+    'nous-hermes2',
+    'llama-pro',
+    'stablelm-zephyr',
+    'alfred',
   ];
   llamaUrl;
   categories: Category[] = [];
@@ -53,10 +60,14 @@ export class ChatContextService implements OnApplicationBootstrap {
     chunkSize: 500,
     chunkOverlap: 0,
   });
+  hubspot;
 
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
     this.embeddingModel = new HuggingFaceTransformersEmbeddings();
+    this.hubspot = new Client({
+      accessToken: 'pat-eu1-f4d5a0a3-b6e8-48d7-a4f8-04dfde2496d8',
+    });
   }
 
   private async createVectorStorage(
@@ -83,7 +94,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     return new Ollama({
       baseUrl: `${this.llamaUrl}`,
       model: modelName,
-      temperature: 1.8,
+      temperature: 0.3,
     });
   }
 
@@ -725,7 +736,7 @@ export class ChatContextService implements OnApplicationBootstrap {
     //Request to blank model with prompt template
     if (!selectedCategory && selectedPromptTemplate) {
       const prompt = PromptTemplate.fromTemplate(
-        `${selectedPromptTemplate.content} answer user's question: {question}. Also use previous chat history: {chatHistory}`,
+        `${selectedPromptTemplate.content} answer user's question: {question}. Keep in mind previous chat history: {chatHistory}`,
       );
       const runnable = prompt.pipe(currentChat.model);
       const answer = await runnable.invoke({
@@ -759,10 +770,10 @@ export class ChatContextService implements OnApplicationBootstrap {
     if (selectedCategory && selectedPromptTemplate) {
       if (selectedPromptTemplate.title === 'taqi') {
         const prompt = PromptTemplate.fromTemplate(
-          `Use this technical instruction {context} to help user with using, maintaining and repairing some facility, use also your own data to answer common questions not connected with instruction.
-            Your role model: ${selectedPromptTemplate.content}.
+          `Use this technical instruction {context} to help user with using, maintaining and repairing some facility.
+            Act like a: ${selectedPromptTemplate.content}.
             You have a list of parts with corresponding AR model files: {realityComposerList}, check if your answer mention parts from this list.
-            If yes edit your answer by adding corresponding rcproject file name for mentioned part right in answer text.
+            If yes replace mentioned part with corresponding rcproject file name for mentioned part.
             ----------------
             REALITY COMPOSER FILES: {realityComposerList}
             ----------------
@@ -795,7 +806,7 @@ export class ChatContextService implements OnApplicationBootstrap {
         return this.chats;
       }
       const prompt = PromptTemplate.fromTemplate(
-        `Use provided context for this task: ${selectedPromptTemplate.content}.
+        `Use provided context for this task: ${selectedPromptTemplate.content}. Keep in mind previous chat history: {chat history} to assist better.
             CONTEXT: {context}
             ----------------
             CHAT HISTORY: {chatHistory}
