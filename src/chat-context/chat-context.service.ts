@@ -59,7 +59,6 @@ export class ChatContextService implements OnApplicationBootstrap {
     chunkSize: 500,
     chunkOverlap: 0,
   });
-  hubspot;
 
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');

@@ -41,3 +41,34 @@ export interface Chat {
   }[];
   autoplayAnswers?: boolean;
 }
+
+export interface AIExtensionIncomingData {
+  textPost: string;
+  textComment?: string;
+  linkAuthorComment?: string;
+  userInfo: {
+    about: string;
+    aboutAuthor: string;
+    company: string;
+    experience: string;
+    link: string;
+    name: string;
+    position: string;
+  };
+}
+
+export interface FiveSDBBackup {
+  text_post: string;
+  text_comment: string;
+  link_author_comment: string;
+  about_user: string;
+  about_author: string;
+  user_company: string;
+  user_experience: string;
+  user_link: string;
+  user_name: string;
+  user_position: string;
+  extension_user: string;
+  ai_comments: string;
+  project_id: string;
+}

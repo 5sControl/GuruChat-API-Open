@@ -1,29 +1,39 @@
 import { Body, Controller, HttpException, Post } from '@nestjs/common';
 import { AIExtensionService } from './aiExtension.service';
+import { AIExtensionIncomingData } from '../shared/interfaces';
 
 @Controller('aiExtension')
 export class AIExtensionController {
   constructor(private readonly aiExtensionService: AIExtensionService) {}
   @Post('generateComment')
-  async editChat(
+  async generateComment(
     @Body()
     body: {
-      postData: {
-        postText: string;
-        postAuthor: string;
-        postLink: string;
-      };
-      commentData?: {
-        commentText: string;
-        commentAuthor: string;
-        commentLink: string;
-      };
-      extensionUser?: string;
-      projectName?: string;
+      postText: string;
+      commentText?: string;
     },
   ) {
     try {
-      return this.aiExtensionService.generateComment(body);
+      return await this.aiExtensionService.generateComment(body);
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
+
+  @Post('sendEvent')
+  async sendEvent(
+    @Body()
+    body: {
+      generated_comment: string;
+      executor: string;
+      projectId: string;
+    } & AIExtensionIncomingData,
+  ) {
+    try {
+      return await this.aiExtensionService.sendEvent(body);
     } catch (err) {
       if (err.message) {
         throw new HttpException(err.message, err.status);
