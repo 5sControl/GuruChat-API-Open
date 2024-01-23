@@ -21,7 +21,7 @@ export class AIExtensionService {
       temperature: 1.5,
     });
     this.hubspot = new Client({
-      accessToken: 'pat-eu1-f4d5a0a3-b6e8-48d7-a4f8-04dfde2496d8',
+      accessToken: this.configService.get('HUBSPOT_AUTH_TOKEN'),
     });
   }
 
@@ -54,7 +54,10 @@ export class AIExtensionService {
     try {
       const { data } = await axios.post(
         'https://grand-alien-apparently.ngrok-free.app/api/auth/jwt/create/',
-        { username: 'admin', password: 'admin' },
+        {
+          username: this.configService.get('ACCESS_LOGIN'),
+          password: this.configService.get('ACCESS_PASSWORD'),
+        },
       );
       return data.access;
     } catch (e) {
