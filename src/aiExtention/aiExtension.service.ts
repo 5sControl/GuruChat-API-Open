@@ -12,6 +12,7 @@ export class AIExtensionService {
   llamaUrl;
   model;
   hubspot;
+  databaseUrl;
 
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
@@ -23,6 +24,7 @@ export class AIExtensionService {
     this.hubspot = new Client({
       accessToken: this.configService.get('HUBSPOT_AUTH_TOKEN'),
     });
+    this.databaseUrl = this.configService.get('DATABASE_URL');
   }
 
   async hubspotClient(data: {
@@ -53,7 +55,7 @@ export class AIExtensionService {
   async getJwt() {
     try {
       const { data } = await axios.post(
-        'https://grand-alien-apparently.ngrok-free.app/api/auth/jwt/create/',
+        `${this.databaseUrl}api/auth/jwt/create/`,
         {
           username: this.configService.get('ACCESS_LOGIN'),
           password: this.configService.get('ACCESS_PASSWORD'),
@@ -66,17 +68,17 @@ export class AIExtensionService {
   }
 
   async sendToFiveSDB(data: FiveSDBBackup, token: string) {
-    await axios
-      .post(
-        'https://grand-alien-apparently.ngrok-free.app/api/extension_linkedin/reports/',
-        data,
-        {
-          headers: {
-            Authorization: `JWT ${token}`,
-          },
+    return await axios
+      .post(`${this.databaseUrl}api/extension_linkedin/reports/`, data, {
+        headers: {
+          Authorization: `JWT ${token}`,
         },
-      )
-      .catch((err) => console.log(err.message));
+      })
+      .then(() => true)
+      .catch((err) => {
+        console.log(err);
+        return false;
+      });
   }
 
   async sendEvent(
@@ -91,6 +93,8 @@ export class AIExtensionService {
       post_text: data.textPost,
       comment_text: data.textComment ?? '--',
       generated_comment: data.generated_comment,
+      post_author: data.userInfo.name,
+      authors__company: data.userInfo.company,
     };
     const fiveSDBEventData: FiveSDBBackup = {
       text_post: data.textPost,
@@ -107,10 +111,14 @@ export class AIExtensionService {
       ai_comments: data.generated_comment,
       project_id: data.projectId ?? '--',
     };
-    await this.hubspotClient(hubspotEventData);
     const token = await this.getJwt();
-    await this.sendToFiveSDB(fiveSDBEventData, token);
-    return 'Event successfully sent';
+    const result = await this.sendToFiveSDB(fiveSDBEventData, token);
+    if (result) {
+      await this.hubspotClient(hubspotEventData);
+      return 'Event successfully sent';
+    } else {
+      return 'invalid fields';
+    }
   }
 
   async generateComment(data: { postText: string; commentText?: string }) {
