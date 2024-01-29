@@ -32,14 +32,13 @@ export class AIExtensionService {
     post_text: string;
     comment_text?: string;
     generated_comment: string;
+    post_author: string;
+    authors__company: string;
   }) {
     const uniqueId = v4();
     const properties = {
       firstname: uniqueId,
-      generated_comment: data.generated_comment,
-      executor: data.executor,
-      post_text: data.post_text,
-      comment_text: data.comment_text ?? '--',
+      ...data,
     };
     const SimplePublicObjectInputForCreate = { associations: [], properties };
     try {
