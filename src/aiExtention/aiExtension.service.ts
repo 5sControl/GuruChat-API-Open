@@ -3,7 +3,6 @@ import { PromptTemplate } from 'langchain/prompts';
 import { LLMChain } from 'langchain/chains';
 import { Ollama } from 'langchain/llms/ollama';
 import { ConfigService } from '@nestjs/config';
-import { v4 } from 'uuid';
 import { Client } from '@hubspot/api-client';
 import { AIExtensionIncomingData, FiveSDBBackup } from '../shared/interfaces';
 import axios from 'axios';
@@ -28,16 +27,15 @@ export class AIExtensionService {
   }
 
   async hubspotClient(data: {
-    executor: string;
+    firstname: string;
     post_text: string;
     comment_text?: string;
     generated_comment: string;
     post_author: string;
     authors__company: string;
+    project_name: string;
   }) {
-    const uniqueId = v4();
     const properties = {
-      firstname: uniqueId,
       ...data,
     };
     const SimplePublicObjectInputForCreate = { associations: [], properties };
@@ -88,12 +86,13 @@ export class AIExtensionService {
     } & AIExtensionIncomingData,
   ) {
     const hubspotEventData = {
-      executor: data.executor,
+      firstname: data.executor,
       post_text: data.textPost,
       comment_text: data.textComment ?? '--',
       generated_comment: data.generated_comment,
       post_author: data.userInfo.name,
       authors__company: data.userInfo.company,
+      project_name: data.projectId,
     };
     const fiveSDBEventData: FiveSDBBackup = {
       text_post: data.textPost,
@@ -120,10 +119,15 @@ export class AIExtensionService {
     }
   }
 
-  async generateComment(data: { postText: string; commentText?: string }) {
+  async generateComment(data: {
+    postText: string;
+    commentText?: string;
+    prompt?: string;
+  }) {
     if (data.commentText) {
       const prompt = PromptTemplate.fromTemplate(
-        `Generate answer to the {comment} from the quoted Linkedin {post} or article to drive discussion.  Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+        data.prompt ??
+          `Generate answer to the {comment} from the quoted Linkedin {post} or article to drive discussion.  Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
             POST: {post}
             COMMENT: {comment}
           `,
@@ -134,12 +138,13 @@ export class AIExtensionService {
       });
       const answer = await chain.invoke({
         post: data.postText,
-        comment: data.commentText,
+        comment: data.prompt ?? data.commentText,
       });
       return answer.text;
     }
     const prompt = PromptTemplate.fromTemplate(
-      `Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+      data.prompt ??
+        `Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
             POST: {post}
           `,
     );
