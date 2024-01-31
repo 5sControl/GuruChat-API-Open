@@ -122,8 +122,10 @@ export class AIExtensionService {
   }) {
     if (data.commentText) {
       const prompt = PromptTemplate.fromTemplate(
-        data.prompt ??
-          `Generate answer to the {comment} from the quoted Linkedin {post} or article to drive discussion.  Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+        `${
+          data.prompt ??
+          'Generate answer to the {comment} from the quoted Linkedin {post} or article to drive discussion.  Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.'
+        }
             POST: {post}
             COMMENT: {comment}
           `,
@@ -140,7 +142,10 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       data.prompt ??
-        `Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+        `${
+          data.prompt ??
+          'Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.'
+        }
             POST: {post}
           `,
     );
