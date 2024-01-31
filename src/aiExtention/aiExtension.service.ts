@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { PromptTemplate } from 'langchain/prompts';
 import { LLMChain } from 'langchain/chains';
 import { Ollama } from 'langchain/llms/ollama';
@@ -60,7 +60,7 @@ export class AIExtensionService {
       );
       return data.access;
     } catch (e) {
-      return e.message;
+      throw new HttpException('Invalid fields values', 422);
     }
   }
 
@@ -74,7 +74,7 @@ export class AIExtensionService {
       .then(() => true)
       .catch((err) => {
         console.log(err);
-        return false;
+        throw new HttpException('Invalid fields values', 422);
       });
   }
 
@@ -110,13 +110,9 @@ export class AIExtensionService {
       project_id: data.projectId ?? '--',
     };
     const token = await this.getJwt();
-    const result = await this.sendToFiveSDB(fiveSDBEventData, token);
-    if (result) {
-      await this.hubspotClient(hubspotEventData);
-      return 'Event successfully sent';
-    } else {
-      return 'invalid fields';
-    }
+    await this.sendToFiveSDB(fiveSDBEventData, token);
+    await this.hubspotClient(hubspotEventData);
+    return 'Event successfully sent';
   }
 
   async generateComment(data: {
