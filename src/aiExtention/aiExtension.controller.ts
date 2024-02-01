@@ -9,8 +9,8 @@ export class AIExtensionController {
   async generateComment(
     @Body()
     body: {
-      postText: string;
-      commentText?: string;
+      textPost: string;
+      textComment?: string;
     },
   ) {
     try {
