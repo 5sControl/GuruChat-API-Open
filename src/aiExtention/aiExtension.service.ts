@@ -27,7 +27,7 @@ export class AIExtensionService {
   }
 
   async hubspotClient(data: {
-    firstname: string;
+    subject: string;
     post_text: string;
     comment_text?: string;
     generated_comment: string;
@@ -36,11 +36,12 @@ export class AIExtensionService {
     project_name: string;
   }) {
     const properties = {
+      hs_pipeline_stage: '1',
       ...data,
     };
     const SimplePublicObjectInputForCreate = { associations: [], properties };
     try {
-      await this.hubspot.crm.contacts.basicApi.create(
+      await this.hubspot.crm.tickets.basicApi.create(
         SimplePublicObjectInputForCreate,
       );
       console.log('Hubspot event sent');
@@ -86,7 +87,7 @@ export class AIExtensionService {
     } & AIExtensionIncomingData,
   ) {
     const hubspotEventData = {
-      firstname: data.executor,
+      subject: data.executor,
       post_text: data.textPost,
       comment_text: data.textComment ?? '--',
       generated_comment: data.generated_comment,
