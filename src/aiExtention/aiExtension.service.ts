@@ -123,10 +123,7 @@ export class AIExtensionService {
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          Analyze this post in LinkedIn: {post}
-          Analyze this comment to the post above: {comment}
-                  ${data.prompt}
-        Generate interesting answer to the provided {comment} (about 70 words) 
+          Imagine that you are ${data.prompt}, then give interesting answer to the provided {comment} to this {post} (about 70 words)
             POST: {post}
             COMMENT: {comment}
           `,
@@ -143,9 +140,7 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        Analyze this post in LinkedIn: {post}
-        ${data.prompt}
-        Generate interesting comment to this {post} (about 70 words) 
+        Imagine that you are ${data.prompt}, finally give interesting comment to this {post} (about 70 words)
             POST: {post}
           `,
     );
