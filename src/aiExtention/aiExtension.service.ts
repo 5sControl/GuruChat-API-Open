@@ -18,7 +18,7 @@ export class AIExtensionService {
     this.model = new Ollama({
       baseUrl: `${this.llamaUrl}`,
       model: 'openchat',
-      temperature: 1.5,
+      temperature: 1,
     });
     this.hubspot = new Client({
       accessToken: this.configService.get('HUBSPOT_AUTH_TOKEN'),
@@ -123,7 +123,7 @@ export class AIExtensionService {
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          Imagine that you are ${data.prompt}, then give interesting answer to the provided {comment} to this {post} (about 70 words)
+          Imagine that you are ${data.prompt}, shortly reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
             POST: {post}
             COMMENT: {comment}
           `,
@@ -134,13 +134,13 @@ export class AIExtensionService {
       });
       const answer = await chain.invoke({
         post: data.textPost,
-        comment: data.prompt ?? data.textPost,
+        comment: data.textComment,
       });
       return answer.text;
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        Imagine that you are ${data.prompt}, finally give interesting comment to this {post} (about 70 words)
+        Imagine that you are ${data.prompt}, then Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
             POST: {post}
           `,
     );
