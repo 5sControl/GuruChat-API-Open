@@ -126,6 +126,7 @@ export class AIExtensionService {
           data.prompt ??
           'Generate answer to the {comment} from the quoted Linkedin {post} or article to drive discussion.  Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.'
         }
+            Length of your answer should be about 50 words. 
             POST: {post}
             COMMENT: {comment}
           `,
@@ -146,6 +147,7 @@ export class AIExtensionService {
           data.prompt ??
           'Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.'
         }
+        Length of your answer should be about 50 words. 
             POST: {post}
           `,
     );
