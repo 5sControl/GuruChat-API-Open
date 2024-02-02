@@ -124,7 +124,7 @@ export class AIExtensionService {
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          Imagine that you are ${data.prompt}, shortly reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+          ${data.prompt}, shortly reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
             POST: {post}
             COMMENT: {comment}
           `,
@@ -141,7 +141,7 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        Imagine that you are ${data.prompt}, then Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+        ${data.prompt}, then Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
             POST: {post}
           `,
     );
