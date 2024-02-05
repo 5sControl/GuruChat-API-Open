@@ -12,12 +12,13 @@ export class AIExtensionService {
   model;
   hubspot;
   databaseUrl;
+  modelsList = ['llama2:13b', 'openchat', 'mistral'];
 
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
     this.model = new Ollama({
       baseUrl: `${this.llamaUrl}`,
-      model: 'llama2:13b',
+      model: 'mistral',
       temperature: 1,
     });
     this.hubspot = new Client({
@@ -123,11 +124,17 @@ export class AIExtensionService {
     textPost: string;
     textComment?: string;
     prompt?: string;
+    modelName?: string;
   }) {
+    this.model = new Ollama({
+      baseUrl: `${this.llamaUrl}`,
+      model: data.modelName ?? 'openchat',
+      temperature: 1,
+    });
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          ${data.prompt}, reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words.
+          Reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words. ${data.prompt}.
             POST: {post}
             COMMENT: {comment}
           `,
@@ -144,7 +151,7 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        ${data.prompt}, then Comment the quoted Linkedin post to drive discussion. Be supportive and brief. Your tone has to be professional, but a bit informal and friendly. Your response is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+        Comment the quoted Linkedin post. Your comment is limited to 70 words. ${data.prompt}.
             POST: {post}
           `,
     );
