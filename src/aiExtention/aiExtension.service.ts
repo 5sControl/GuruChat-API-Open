@@ -17,7 +17,7 @@ export class AIExtensionService {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
     this.model = new Ollama({
       baseUrl: `${this.llamaUrl}`,
-      model: 'openchat',
+      model: 'llama2:13b',
       temperature: 1,
     });
     this.hubspot = new Client({
