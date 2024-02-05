@@ -34,6 +34,7 @@ export class AIExtensionService {
     post_author: string;
     authors__company: string;
     project_name: string;
+    link_to_post: string;
   }) {
     const properties = {
       hs_pipeline_stage: '1',
@@ -95,7 +96,7 @@ export class AIExtensionService {
       post_author: data.userInfo.name,
       authors__company: data.userInfo.company,
       project_name: data.projectId,
-      link_to_post: data.postLink,
+      link_to_post: data.postLink ?? '--',
     };
     const fiveSDBEventData: FiveSDBBackup = {
       text_post: data.textPost,
