@@ -84,6 +84,7 @@ export class AIExtensionService {
       executor: string;
       generated_comment: string;
       projectId: string;
+      postLink: string;
     } & AIExtensionIncomingData,
   ) {
     const hubspotEventData = {
@@ -94,6 +95,7 @@ export class AIExtensionService {
       post_author: data.userInfo.name,
       authors__company: data.userInfo.company,
       project_name: data.projectId,
+      link_to_post: data.postLink,
     };
     const fiveSDBEventData: FiveSDBBackup = {
       text_post: data.textPost,
@@ -124,7 +126,7 @@ export class AIExtensionService {
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          ${data.prompt}, shortly reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words. Try to avoid phrases, vocabulary and structures typical of GPT-chat.
+          ${data.prompt}, reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words.
             POST: {post}
             COMMENT: {comment}
           `,
