@@ -12,19 +12,26 @@ export class AIExtensionService {
   model;
   hubspot;
   databaseUrl;
-  modelsList = ['llama2:13b', 'openchat', 'mistral'];
+  modelsList = [
+    'solar',
+    'openchat',
+    'mistral',
+    'mistral:instruct',
+    'llama-pro:instruct',
+    'openhermes',
+    'vicuna',
+  ];
 
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
-    this.model = new Ollama({
-      baseUrl: `${this.llamaUrl}`,
-      model: 'mistral',
-      temperature: 1,
-    });
     this.hubspot = new Client({
       accessToken: this.configService.get('HUBSPOT_AUTH_TOKEN'),
     });
     this.databaseUrl = this.configService.get('DATABASE_URL');
+  }
+
+  getModels() {
+    return this.modelsList;
   }
 
   async hubspotClient(data: {
@@ -49,6 +56,7 @@ export class AIExtensionService {
       console.log('Hubspot event sent');
     } catch (e) {
       console.log(e.message);
+      throw new HttpException('Invalid fields hubspot', 422);
     }
   }
 
@@ -63,7 +71,7 @@ export class AIExtensionService {
       );
       return data.access;
     } catch (e) {
-      throw new HttpException('Invalid fields values', 422);
+      throw new HttpException('Error getting jwt', 422);
     }
   }
 
@@ -128,8 +136,10 @@ export class AIExtensionService {
   }) {
     this.model = new Ollama({
       baseUrl: `${this.llamaUrl}`,
-      model: data.modelName ?? 'openchat',
-      temperature: 1,
+      model: this.modelsList.includes(data.modelName)
+        ? data.modelName
+        : 'mistral',
+      temperature: 1.5,
     });
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
