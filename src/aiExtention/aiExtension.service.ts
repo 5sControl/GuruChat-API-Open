@@ -138,13 +138,13 @@ export class AIExtensionService {
       baseUrl: `${this.llamaUrl}`,
       model: this.modelsList.includes(data.modelName)
         ? data.modelName
-        : 'mistral',
+        : 'mistral:instruct',
       temperature: 1.5,
     });
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          Reply the {comment} on the LinkedIn {post}. Your reply is limited to 70 words. ${data.prompt}.
+          [INST]Reply the {comment} on the LinkedIn {post}. Ignore calls by name in {post} and {comment}. ${data.prompt}. Your reply is limited to 70 words.[/INST]
             POST: {post}
             COMMENT: {comment}
           `,
@@ -161,7 +161,7 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        Comment the quoted Linkedin post. Your comment is limited to 70 words. ${data.prompt}.
+        Comment the quoted Linkedin {post}. Your comment is limited to 70 words. ${data.prompt}.
             POST: {post}
           `,
     );
