@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { Client } from '@hubspot/api-client';
 import { AIExtensionIncomingData, FiveSDBBackup } from '../shared/interfaces';
 import axios from 'axios';
+
 @Injectable()
 export class AIExtensionService {
   llamaUrl;
@@ -20,6 +21,7 @@ export class AIExtensionService {
     'llama-pro:instruct',
     'openhermes',
     'vicuna',
+    'qwen',
   ];
 
   constructor(private readonly configService: ConfigService) {
@@ -53,9 +55,7 @@ export class AIExtensionService {
       await this.hubspot.crm.tickets.basicApi.create(
         SimplePublicObjectInputForCreate,
       );
-      console.log('Hubspot event sent');
     } catch (e) {
-      console.log(e.message);
       throw new HttpException('Invalid fields hubspot', 422);
     }
   }
@@ -144,14 +144,23 @@ export class AIExtensionService {
     if (data.textComment) {
       const prompt = PromptTemplate.fromTemplate(
         `
-          [INST]Reply the {comment} on the LinkedIn {post}. Ignore calls by name in {post} and {comment}. ${data.prompt}. Your reply is limited to 70 words.[/INST]
+          Reply the {comment} on the LinkedIn {post}. ${data.prompt}. Don't use any names in your answer. Your reply is limited to 70 words.
             POST: {post}
             COMMENT: {comment}
           `,
       );
+      const customPrompt = PromptTemplate.fromTemplate(
+        `
+          ${data.prompt}
+            POST: {post}
+            COMMENT: {comment}
+          `,
+      );
+      const isCustomPrompt =
+        data.prompt.includes('{post}') && data.prompt.includes('{comment}');
       const chain = new LLMChain({
         llm: this.model,
-        prompt,
+        prompt: isCustomPrompt ? customPrompt : prompt,
       });
       const answer = await chain.invoke({
         post: data.textPost,
@@ -165,9 +174,16 @@ export class AIExtensionService {
             POST: {post}
           `,
     );
+    const customPrompt = PromptTemplate.fromTemplate(
+      `
+          ${data.prompt}
+            POST: {post}
+          `,
+    );
+    const isCustomPrompt = data.prompt.includes('{post}');
     const chain = new LLMChain({
       llm: this.model,
-      prompt,
+      prompt: isCustomPrompt ? customPrompt : prompt,
     });
     const answer = await chain.invoke({
       post: data.textPost,
