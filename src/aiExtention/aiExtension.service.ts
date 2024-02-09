@@ -146,7 +146,7 @@ export class AIExtensionService {
       baseUrl: `${this.llamaUrl}`,
       model: this.modelsList.includes(data.modelName)
         ? data.modelName
-        : 'mistral:instruct',
+        : 'openchat',
       temperature: 1.5,
     });
     if (data.textComment) {
