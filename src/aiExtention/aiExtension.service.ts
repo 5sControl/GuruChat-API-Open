@@ -23,6 +23,13 @@ export class AIExtensionService {
     'vicuna',
     'qwen',
   ];
+  promptPresets = {
+    thoughtful: 'answer very thoughtfuly',
+    supportive: 'support commentator in your answer',
+    summarize: 'summarize provided {post} and {comment}',
+    question: 'ask logical question in your answer to start a discussion',
+    argue: 'do not agree with commentator, star arguing',
+  };
 
   constructor(private readonly configService: ConfigService) {
     this.llamaUrl = this.configService.get('CHATGURU_API_MODEL_URL');
@@ -133,6 +140,7 @@ export class AIExtensionService {
     textComment?: string;
     prompt?: string;
     modelName?: string;
+    length?: number;
   }) {
     this.model = new Ollama({
       baseUrl: `${this.llamaUrl}`,
@@ -142,11 +150,24 @@ export class AIExtensionService {
       temperature: 1.5,
     });
     if (data.textComment) {
+      const answerLimit =
+        !data.length || data.length === 1
+          ? 'twenty words'
+          : data.length === 3
+          ? 'more than eighty words'
+          : `fifty words`;
+
+      const tone = Object.keys(this.promptPresets).includes(data.prompt)
+        ? this.promptPresets[data.prompt]
+        : data.prompt;
+
       const prompt = PromptTemplate.fromTemplate(
         `
-          Reply the {comment} on the LinkedIn {post}. ${data.prompt}. Don't use any names in your answer. Your reply is limited to 70 words.
+        [INST]
+          Reply the {comment} on the LinkedIn {post}. ${tone}.  Your reply is limited to ${answerLimit}.
             POST: {post}
             COMMENT: {comment}
+            [/INST]
           `,
       );
       const customPrompt = PromptTemplate.fromTemplate(
