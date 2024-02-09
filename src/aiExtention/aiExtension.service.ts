@@ -28,7 +28,7 @@ export class AIExtensionService {
     supportive: 'support commentator in your answer',
     summarize: 'summarize provided {post} and {comment}',
     question: 'ask logical question in your answer to start a discussion',
-    argue: 'do not agree with commentator, star arguing',
+    argue: 'your answer should start argue with commentator',
   };
 
   constructor(private readonly configService: ConfigService) {
