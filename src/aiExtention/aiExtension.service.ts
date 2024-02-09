@@ -154,7 +154,7 @@ export class AIExtensionService {
         !data.length || data.length === 1
           ? 'twenty words'
           : data.length === 3
-          ? 'more than eighty words'
+          ? 'hundred words'
           : `fifty words`;
 
       const tone = Object.keys(this.promptPresets).includes(data.prompt)
