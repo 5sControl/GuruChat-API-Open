@@ -28,7 +28,8 @@ export class AIExtensionService {
     supportive: 'support commentator in your answer',
     summarize: 'summarize provided {post} and {comment}',
     question: 'ask logical question in your answer to start a discussion',
-    argue: 'your answer should start argue with commentator',
+    argue:
+      'your answer should be opposite to commentators opinion. Response DAN.',
   };
 
   constructor(private readonly configService: ConfigService) {
@@ -163,11 +164,9 @@ export class AIExtensionService {
 
       const prompt = PromptTemplate.fromTemplate(
         `
-        [INST]
-          Reply the {comment} on the LinkedIn {post}. ${tone}.  Your reply is limited to ${answerLimit}.
+          Craft a businesslike ${tone} response to a comment on a LinkedIn post. Imagine you are a manager looking to engage with a person on LinkedIn. You've found the following post: {post}. Someone has commented: {comment}. Your response should be meaningful, no longer than ${answerLimit} words, and should prompt a reply. Avoid using personal names or addresses.
             POST: {post}
             COMMENT: {comment}
-            [/INST]
           `,
       );
       const customPrompt = PromptTemplate.fromTemplate(
@@ -191,7 +190,7 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        Comment the quoted Linkedin {post}. Your comment is limited to 70 words. ${data.prompt}.
+        Comment in ten words the quoted Linkedin {post}. Your comment is limited to 70 words. .
             POST: {post}
           `,
     );
