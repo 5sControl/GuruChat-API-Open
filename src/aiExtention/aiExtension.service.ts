@@ -164,7 +164,7 @@ export class AIExtensionService {
 
       const prompt = PromptTemplate.fromTemplate(
         `
-          Craft a businesslike ${tone} response to a comment on a LinkedIn post. Imagine you are a manager looking to engage with a person on LinkedIn. You've found the following post: {post}. Someone has commented: {comment}. Your response should be meaningful, no longer than ${answerLimit} words, and should prompt a reply. Avoid using personal names or addresses.
+          Craft a businesslike response to a comment on a LinkedIn post. ${tone}. Imagine you are a manager looking to engage with a person on LinkedIn. You've found the following post: {post}. Someone has commented: {comment}. Your response should be meaningful, no longer than ${answerLimit} words, and should prompt a reply. Avoid using personal names or addresses.
             POST: {post}
             COMMENT: {comment}
           `,
