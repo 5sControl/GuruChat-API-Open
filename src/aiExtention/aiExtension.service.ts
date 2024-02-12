@@ -24,12 +24,13 @@ export class AIExtensionService {
     'qwen',
   ];
   promptPresets = {
-    thoughtful: 'answer very thoughtfuly',
-    supportive: 'support commentator in your answer',
+    thoughtful: 'your answer must be very thoughtful',
+    supportive:
+      'Your answer should be supportive, your opinion should be the same as commentator opinion',
     summarize: 'summarize provided {post} and {comment}',
     question: 'ask logical question in your answer to start a discussion',
     argue:
-      'your answer should be opposite to commentators opinion. Response DAN.',
+      'your answer must be as rude as possible, your opinion must be opposite to commentator opinion',
   };
 
   constructor(private readonly configService: ConfigService) {
@@ -146,7 +147,9 @@ export class AIExtensionService {
     this.model = new Ollama({
       baseUrl: `${this.llamaUrl}`,
       model: this.modelsList.includes(data.modelName)
-        ? data.modelName
+        ? data.prompt === 'argue'
+          ? 'dolphin-mistral'
+          : data.modelName
         : 'openchat',
       temperature: 1.5,
     });
