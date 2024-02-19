@@ -26,6 +26,7 @@
     "fix": "cp fixes/fix-hf-transformers.cjs node_modules/langchain/dist/embeddings/hf_transformers.cjs"
   },
   "dependencies": {
+    "@hubspot/api-client": "^10.2.0",
     "@mozilla/readability": "^0.4.4",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.1.1",
