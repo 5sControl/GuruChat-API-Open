@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SummarizationModule } from './summarization/summarization.module';
 import { AIExtensionModule } from './aiExtention/aiExtension.module';
 import { EmailsParserModule } from './emailsParser/emailsParser.module';
+import { GrammarCorrectionModule } from './grammar-correction/grammarCorrection.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EmailsParserModule } from './emailsParser/emailsParser.module';
     SummarizationModule,
     AIExtensionModule,
     EmailsParserModule,
+    GrammarCorrectionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
