@@ -153,18 +153,19 @@ export class AIExtensionService {
         : 'openchat',
       temperature: 1.5,
     });
+
+    const answerLimit =
+      !data.length || data.length === 1
+        ? 'twenty words'
+        : data.length === 3
+        ? 'hundred words'
+        : `fifty words`;
+
+    const tone = Object.keys(this.promptPresets).includes(data.prompt)
+      ? this.promptPresets[data.prompt]
+      : data.prompt;
+
     if (data.textComment) {
-      const answerLimit =
-        !data.length || data.length === 1
-          ? 'twenty words'
-          : data.length === 3
-          ? 'hundred words'
-          : `fifty words`;
-
-      const tone = Object.keys(this.promptPresets).includes(data.prompt)
-        ? this.promptPresets[data.prompt]
-        : data.prompt;
-
       const prompt = PromptTemplate.fromTemplate(
         `
           Craft a businesslike response to a comment on a LinkedIn post. ${tone}. Imagine you are a manager looking to engage with a person on LinkedIn. You've found the following post: {post}. Someone has commented: {comment}. Your response should be meaningful, no longer than ${answerLimit} words, and should prompt a reply. Avoid using personal names or addresses.
@@ -193,7 +194,7 @@ export class AIExtensionService {
     }
     const prompt = PromptTemplate.fromTemplate(
       `
-        Comment in ten words the quoted Linkedin {post}. Your comment is limited to 70 words. .
+          Craft a businesslike response to a LinkedIn post. ${tone}. Imagine you are a manager looking to engage with a person on LinkedIn. You've found the following post: {post}. Your comment should be meaningful, no longer than ${answerLimit} words, and should prompt a reply. Avoid using personal names or addresses.
             POST: {post}
           `,
     );
