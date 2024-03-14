@@ -214,4 +214,53 @@ export class AIExtensionService {
     });
     return answer.text;
   }
+
+  async getProfilesData(body: { key: string; profilesLinks: string[] }) {
+    const usersData = [];
+    for (const link of body.profilesLinks) {
+      try {
+        await axios
+          .get(link, { headers: { Cookie: `li_at=${body.key}` } })
+          .then((res) => {
+            const temp =
+              JSON.stringify(res.data).substring(
+                JSON.stringify(res.data).indexOf(
+                  '{&quot;data&quot;:{&quot;entityUrn&quot;:&quot;urn:li:collectionResponse:',
+                ),
+                JSON.stringify(res.data).indexOf(
+                  'MemberRelationshipV2ForInjection&quot;],&quot;$type&quot;:&quot;com.linkedin.voyager.dash.relationships.MemberRelationship&quot;}]}',
+                ),
+              ) +
+              'MemberRelationshipV2ForInjection&quot;],&quot;$type&quot;:&quot;com.linkedin.voyager.dash.relationships.MemberRelationship&quot;}]}';
+
+            const result =
+              temp.substring(
+                temp.lastIndexOf(
+                  '{&quot;data&quot;:{&quot;entityUrn&quot;:&quot;urn:li:collectionResponse:',
+                ),
+                temp.lastIndexOf(
+                  'MemberRelationshipV2ForInjection&quot;],&quot;$type&quot;:&quot;com.linkedin.voyager.dash.relationships.MemberRelationship&quot;}]}',
+                ),
+              ) +
+              'MemberRelationshipV2ForInjection&quot;],&quot;$type&quot;:&quot;com.linkedin.voyager.dash.relationships.MemberRelationship&quot;}]}';
+
+            const data = JSON.parse(result.replaceAll('&quot;', '"')).included;
+            const elWithData = data.find((el) =>
+              Object.keys(el).includes('birthDateOn'),
+            );
+            const country = data[2].defaultLocalizedName;
+            const name = elWithData['firstName'] + ' ' + elWithData['lastName'];
+            const position = elWithData['headline'];
+            usersData.push({
+              country: country,
+              name: name,
+              position: position,
+            });
+          });
+      } catch {
+        console.log('invalid profile link');
+      }
+    }
+    return usersData;
+  }
 }

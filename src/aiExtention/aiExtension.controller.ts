@@ -55,4 +55,22 @@ export class AIExtensionController {
       throw new HttpException(err, 500);
     }
   }
+
+  @Post('getProfilesData')
+  getProfilesData(
+    @Body()
+    body: {
+      key: string;
+      profilesLinks: string[];
+    },
+  ) {
+    try {
+      return this.aiExtensionService.getProfilesData(body);
+    } catch (err) {
+      if (err.message) {
+        throw new HttpException(err.message, err.status);
+      }
+      throw new HttpException(err, 500);
+    }
+  }
 }
